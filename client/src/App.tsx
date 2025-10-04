@@ -7,6 +7,8 @@ import { Register } from "./pages/Register"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import { Layout } from "./components/Layout"
 import { BlankPage } from "./pages/BlankPage"
+import { ProfessorDashboard } from "./pages/ProfessorDashboard"
+import { GradeManagement } from "./pages/GradeManagement"
 
 function App() {
   return (
@@ -16,7 +18,10 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<ProtectedRoute> <Layout /> </ProtectedRoute>} />
+          <Route path="/" element={<ProtectedRoute> <Layout /> </ProtectedRoute>}>
+            <Route index element={<ProfessorDashboard />} />
+            <Route path="grades/:disciplineClassId" element={<GradeManagement />} />
+          </Route>
           <Route path="*" element={<BlankPage />} />
         </Routes>
       </Router>
