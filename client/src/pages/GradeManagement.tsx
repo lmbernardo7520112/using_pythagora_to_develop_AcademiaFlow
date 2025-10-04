@@ -37,11 +37,11 @@ export function GradeManagement() {
         setAnalytics(calculateClassAnalytics(recalculatedStudents));
 
         console.log('Grade data loaded:', recalculatedStudents.length, 'students');
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error fetching grade data:', error);
         toast({
           title: 'Erro',
-          description: error.message || 'Erro ao carregar notas',
+          description: error instanceof Error ? error.message : 'Erro ao carregar notas',
           variant: 'destructive',
         });
       } finally {
@@ -80,11 +80,11 @@ export function GradeManagement() {
           title: 'Sucesso',
           description: 'Nota salva com sucesso',
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error updating grade:', error);
         toast({
           title: 'Erro',
-          description: error.message || 'Erro ao salvar nota',
+          description: error instanceof Error ? error.message : 'Erro ao salvar nota',
           variant: 'destructive',
         });
         throw error;
@@ -107,11 +107,11 @@ export function GradeManagement() {
         title: 'Sucesso',
         description: 'Todas as notas foram salvas com sucesso',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving all grades:', error);
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao salvar notas',
+        description: error instanceof Error ? error.message : 'Erro ao salvar notas',
         variant: 'destructive',
       });
     } finally {

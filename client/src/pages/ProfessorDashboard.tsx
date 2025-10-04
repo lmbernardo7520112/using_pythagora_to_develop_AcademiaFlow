@@ -20,11 +20,11 @@ export function ProfessorDashboard() {
         const response = await getProfessorDisciplines();
         setDisciplineClasses(response.disciplineClasses);
         console.log('Disciplines loaded:', response.disciplineClasses.length);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error fetching disciplines:', error);
         toast({
           title: 'Erro',
-          description: error.message || 'Erro ao carregar disciplinas',
+          description: error instanceof Error ? error.message : 'Erro ao carregar disciplinas',
           variant: 'destructive',
         });
       } finally {
