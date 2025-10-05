@@ -1,3 +1,4 @@
+//client/src/pages/ProfessorDashboard.tsx
 import { useEffect, useState } from 'react';
 import { DisciplineClass } from '@/types/academic';
 import { getProfessorDisciplines } from '@/api/disciplines';

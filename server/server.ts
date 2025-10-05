@@ -1,56 +1,83 @@
+// server/server.ts
 import dotenv from 'dotenv';
 import express from 'express';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import basicRoutes from './routes/index';
 import authRoutes from './routes/authRoutes';
 import { connectDB } from './config/database';
+import dbInit from './models/init';
 import cors from 'cors';
 
-// Load environment variables
+// ==========================================================
+// TRATAMENTO DE ERROS GLOBAIS DO NODE.JS
+// Para capturar erros não tratados que podem ocorrer em qualquer lugar
+// no processo Node.js (não apenas dentro do Express).
+// ==========================================================
+process.on('uncaughtException', (err: Error) => {
+  console.error('🚨 Uncaught Exception:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error('🚨 Unhandled Rejection:', reason);
+  console.error(promise);
+  process.exit(1);
+});
+// ==========================================================
+
 dotenv.config();
 
 if (!process.env.DATABASE_URL) {
-  console.error("Error: DATABASE_URL variables in .env missing.");
-  process.exit(-1);
+  console.error("Error: DATABASE_URL environment variable is missing in .env file.");
+  process.exit(1);
 }
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Pretty-print JSON responses
 app.enable('json spaces');
-// We want to be consistent with URL paths, so we enable strict routing
 app.enable('strict routing');
 
 app.use(cors({}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Database connection
-connectDB();
+const startServer = async () => {
+  try {
+    await connectDB();
+    await dbInit();
 
-app.on("error", (error: Error) => {
-  console.error(`Server error: ${error.message}`);
-  console.error(error.stack);
-});
+    console.log('✅ MongoDB connected successfully!');
 
-// Basic Routes
-app.use(basicRoutes);
-// Authentication Routes
-app.use('/api/auth', authRoutes);
+    // ==========================================================
+    // CONFIGURAÇÃO DAS ROTAS
+    // ==========================================================
+    // Rotas de autenticação (mantidas com o prefixo /api/auth)
+    app.use('/api/auth', authRoutes);
 
-// If no routes handled the request, it's a 404
-app.use((req: Request, res: Response) => {
-  res.status(404).send("Page not found.");
-});
+    // Rotas básicas (incluindo as novas de professor e notas via index.ts)
+    app.use(basicRoutes);
+    // ==========================================================
 
-// Error handling
-app.use((err: Error, req: Request, res: Response) => {
-  console.error(`Unhandled application error: ${err.message}`);
-  console.error(err.stack);
-  res.status(500).send("There was an error serving your request.");
-});
+    app.use((req: Request, res: Response) => {
+      res.status(404).send("Page not found.");
+    });
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+    app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+      console.error(`Unhandled application error: ${err.message}`);
+      console.error(err.stack);
+      res.status(500).send("There was an error serving your request.");
+    });
+
+    app.listen(port, () => {
+      console.log(`🚀 Server running at http://localhost:${port}`);
+    });
+  } catch (error: any) {
+    console.error(`❌ Failed to start server: ${error.message}`);
+    console.error(error.stack);
+    process.exit(1);
+  }
+};
+
+startServer();

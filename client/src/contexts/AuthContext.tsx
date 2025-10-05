@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+//client/src/contexts/AuthContext.tsx
+import { createContext, useContext, useState, ReactNode, SetStateAction } from "react";
 import { login as apiLogin, register as apiRegister } from "../api/auth";
 import { User } from "../../../shared/types/user";
 
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
   };
 
-  const setAuthData = (accessToken, refreshToken, userData) => {
+  const setAuthData = (accessToken: string, refreshToken: string, userData: SetStateAction<User | null>) => {
     if (accessToken || refreshToken) {
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("accessToken", accessToken);

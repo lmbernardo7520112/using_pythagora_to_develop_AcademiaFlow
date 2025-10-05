@@ -1,3 +1,4 @@
+// server/services/userService.ts (Conteúdo Inalterado, apenas para referência)
 import User, { IUser } from '../models/User';
 import { generatePasswordHash, validatePassword } from '../utils/password';
 
@@ -16,6 +17,7 @@ class UserService {
     }
   }
 
+  // Seu método `get` já retorna `IUser | null` e busca por `_id`, que é perfeito.
   static async get(id: string): Promise<IUser | null> {
     try {
       return await User.findOne({ _id: id }).exec();

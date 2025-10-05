@@ -1,3 +1,4 @@
+//client/src/components/grades/Gradecell.tsx
 import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Loader2, Check, X } from 'lucide-react';

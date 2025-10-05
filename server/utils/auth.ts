@@ -1,3 +1,4 @@
+//server/utils/auth.ts
 import jwt from 'jsonwebtoken';
 import { IUser } from '../models/User';
 

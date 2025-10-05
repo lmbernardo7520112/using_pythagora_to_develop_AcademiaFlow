@@ -1,3 +1,4 @@
+//server/routes/authRoutes.ts
 import express from 'express';
 import { Request, Response } from 'express';
 import UserService from '../services/userService';

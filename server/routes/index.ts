@@ -1,14 +1,27 @@
+// server/routes/index.ts
 import express from 'express';
-import { Request, Response } from 'express';
+// Não precisamos de Request, Response aqui, pois apenas configuramos o roteador
+
+import professorRoutes from './professorRoutes';
+import gradesRoutes from './gradesRoutes';
+
 const router = express.Router();
 
 // Root path response
-router.get("/", (req: Request, res: Response) => {
+router.get("/", (req: express.Request, res: express.Request) => { // Use express.Request/Response
   res.status(200).send("Welcome to Your Website!");
 });
 
-router.get("/ping", (req: Request, res: Response) => {
+router.get("/ping", (req: express.Request, res: express.Request) => { // Use express.Request/Response
   res.status(200).send("pong");
 });
+
+// ==========================================================
+// NOVAS ROTAS INTEGRADAS AQUI
+// As rotas nos arquivos professorRoutes.ts e gradesRoutes.ts já têm o prefixo /api
+// ==========================================================
+router.use(professorRoutes);
+router.use(gradesRoutes);
+// ==========================================================
 
 export default router;

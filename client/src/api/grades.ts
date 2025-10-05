@@ -1,3 +1,4 @@
+//client/src/api/grades.ts
 import api from './api';
 import { GradeData, Student } from '@/types/academic';
 

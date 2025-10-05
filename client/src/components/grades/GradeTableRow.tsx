@@ -58,13 +58,19 @@ export function GradeTableRow({ student, onGradeUpdate }: GradeTableRowProps) {
         />
       </td>
       <td className="p-3">
-        <GradeCell value={student.nf} editable={false} className="bg-muted" />
+        <GradeCell value={student.nf} editable={false} className="bg-muted" onSave={function (value: number): Promise<void> {
+          throw new Error('Function not implemented.');
+        } } />
       </td>
       <td className="p-3">
-        <GradeCell value={student.mg} editable={false} className="bg-muted" />
+        <GradeCell value={student.mg} editable={false} className="bg-muted" onSave={function (value: number): Promise<void> {
+          throw new Error('Function not implemented.');
+        } } />
       </td>
       <td className="p-3">
-        <GradeCell value={student.mf} editable={false} className="bg-muted" />
+        <GradeCell value={student.mf} editable={false} className="bg-muted" onSave={function (value: number): Promise<void> {
+          throw new Error('Function not implemented.');
+        } } />
       </td>
       <td className="p-3 text-center">
         {student.status && (

@@ -1,3 +1,4 @@
+//client/src/components/grades/Gradetable.tsx
 import { Student } from '@/types/academic';
 import { GradeTableRow } from './GradeTableRow';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';

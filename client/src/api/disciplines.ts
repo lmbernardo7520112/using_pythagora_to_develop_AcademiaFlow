@@ -1,3 +1,4 @@
+//client/src/api/disciplines.ts
 import api from './api';
 import { DisciplineClass } from '@/types/academic';
 

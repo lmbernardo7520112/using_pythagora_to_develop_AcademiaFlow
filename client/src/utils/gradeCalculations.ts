@@ -1,3 +1,4 @@
+//client/src/utils/gradeCalculations.ts
 import { Student, ClassAnalytics } from '@/types/academic';
 
 export const calculateNF = (bim1?: number, bim2?: number, bim3?: number, bim4?: number): number | undefined => {

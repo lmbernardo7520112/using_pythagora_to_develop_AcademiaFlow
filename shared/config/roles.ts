@@ -1,3 +1,4 @@
+//shared/config/roles.ts
 const ROLES = {
   ADMIN: 'admin',
   USER: 'user',
