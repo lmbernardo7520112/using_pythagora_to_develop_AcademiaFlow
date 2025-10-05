@@ -41,7 +41,7 @@ const schema = new Schema<IUser>({
   },
   role: {
     type: String,
-    enum: [ROLES.ADMIN, ROLES.USER],
+    enum: [ROLES.ADMIN, ROLES.USER, ROLES.PROFESSOR, ROLES.SECRETARIA, ROLES.ADMINISTRADOR],
     default: ROLES.USER,
   },
   refreshToken: {
