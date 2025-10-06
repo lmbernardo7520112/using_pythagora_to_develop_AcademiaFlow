@@ -1,7 +1,8 @@
 //server/models/Nota.ts
 
 import mongoose, { Schema, Document } from 'mongoose';
-import { IAluno } from './Aluno'; // Importe IAluno para a referência
+import { IAluno } from './Aluno';
+import { calculateGrade } from '../lib/gradeCalculations'; // módulo unificado e agora consistente
 
 export interface INota extends Document {
   alunoId: mongoose.Types.ObjectId;
@@ -11,19 +12,21 @@ export interface INota extends Document {
     avaliacao1?: number;
     avaliacao2?: number;
     avaliacao3?: number;
-    final?: number;
+    avaliacao4?: number;
+    pf?: number; // prova de recuperação / exame
+    final?: number; // caso exista campo final explícito
+    [key: string]: number | undefined;
   };
-  media: number;
+  media: number | null;
   situacao: 'Aprovado' | 'Reprovado' | 'Recuperação' | 'Pendente';
   updatedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// NOVO: Interface para o objeto Nota após `.lean()`
-// Ajustado o tipo de _id para ser mais flexível com o que .lean() pode retornar
+// Interface para objetos obtidos com `.lean()`
 export interface INotaLean {
-  _id: mongoose.Types.ObjectId | string | any; // <--- Ajustado aqui! Pode ser ObjectId, string ou qualquer coisa que .lean() retorne
+  _id: mongoose.Types.ObjectId | string | any;
   alunoId: mongoose.Types.ObjectId | IAluno;
   disciplinaId: mongoose.Types.ObjectId;
   turmaId: mongoose.Types.ObjectId;
@@ -31,15 +34,17 @@ export interface INotaLean {
     avaliacao1?: number;
     avaliacao2?: number;
     avaliacao3?: number;
+    avaliacao4?: number;
+    pf?: number;
     final?: number;
+    [key: string]: number | undefined;
   };
-  media: number;
+  media: number | null;
   situacao: 'Aprovado' | 'Reprovado' | 'Recuperação' | 'Pendente';
   updatedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
-
 
 const notaSchema = new Schema<INota>(
   {
@@ -50,9 +55,11 @@ const notaSchema = new Schema<INota>(
       avaliacao1: { type: Number, min: 0, max: 10 },
       avaliacao2: { type: Number, min: 0, max: 10 },
       avaliacao3: { type: Number, min: 0, max: 10 },
+      avaliacao4: { type: Number, min: 0, max: 10 },
+      pf: { type: Number, min: 0, max: 10 },
       final: { type: Number, min: 0, max: 10 },
     },
-    media: { type: Number, default: 0 },
+    media: { type: Number, default: null },
     situacao: {
       type: String,
       enum: ['Aprovado', 'Reprovado', 'Recuperação', 'Pendente'],
@@ -63,19 +70,16 @@ const notaSchema = new Schema<INota>(
   { timestamps: true }
 );
 
+// índice único composto para evitar duplicidade (aluno + disciplina + turma)
+notaSchema.index({ alunoId: 1, disciplinaId: 1, turmaId: 1 }, { unique: true });
+
+// Hook para calcular automaticamente antes de salvar
 notaSchema.pre('save', function (next) {
-  const avaliacao = this.notas || {};
-  const notasValidas = Object.values(avaliacao).filter((n) => typeof n === 'number');
-  if (notasValidas.length > 0) {
-    this.media = Number(
-      (notasValidas.reduce((a, b) => a + b, 0) / notasValidas.length).toFixed(2)
-    );
-    if (this.media >= 7) this.situacao = 'Aprovado';
-    else if (this.media >= 5) this.situacao = 'Recuperação';
-    else this.situacao = 'Reprovado';
-  } else {
-    this.situacao = 'Pendente';
-  }
+  // 'this' é o documento
+  const notasObj = (this as any).notas || {};
+  const { media, situacao } = calculateGrade(notasObj);
+  (this as any).media = media;
+  (this as any).situacao = situacao;
   next();
 });
 

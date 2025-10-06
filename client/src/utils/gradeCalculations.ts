@@ -1,10 +1,25 @@
 //client/src/utils/gradeCalculations.ts
+
+
 import { Student, ClassAnalytics } from '@/types/academic';
 
+/**
+ * Este util do frontend foi harmonizado com o backend:
+ * - PASS_THRESHOLD = 6.0
+ * - RECOVERY_THRESHOLD = 4.0
+ *
+ * Funções mantêm a mesma saída que a UI espera (nf, mg, mf, status, finalStatus).
+ */
+
+const PASS_THRESHOLD = 6.0;
+const RECOVERY_THRESHOLD = 4.0;
+
+const round2 = (v: number) => Number(v.toFixed(2));
+
 export const calculateNF = (bim1?: number, bim2?: number, bim3?: number, bim4?: number): number | undefined => {
-  const grades = [bim1, bim2, bim3, bim4].filter((g) => g !== undefined) as number[];
+  const grades = [bim1, bim2, bim3, bim4].filter((g) => typeof g === 'number') as number[];
   if (grades.length === 0) return undefined;
-  return Number((grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(2));
+  return round2(grades.reduce((sum, g) => sum + g, 0) / grades.length);
 };
 
 export const calculateMG = (nf?: number): number | undefined => {
@@ -13,30 +28,31 @@ export const calculateMG = (nf?: number): number | undefined => {
 
 export const calculateMF = (mg?: number, pf?: number): number | undefined => {
   if (mg === undefined) return undefined;
-  if (mg >= 6.0) return mg;
-  if (pf !== undefined) {
-    return Number(((mg + pf) / 2).toFixed(2));
+  if (mg >= PASS_THRESHOLD) return mg;
+  if (pf !== undefined && !isNaN(pf)) {
+    return round2((mg + pf) / 2);
   }
   return mg;
 };
 
 export const calculateStatus = (mg?: number): 'Aprovado' | 'Recuperação' | 'Reprovado' | undefined => {
   if (mg === undefined) return undefined;
-  if (mg >= 6.0) return 'Aprovado';
-  if (mg >= 4.0) return 'Recuperação';
+  if (mg >= PASS_THRESHOLD) return 'Aprovado';
+  if (mg >= RECOVERY_THRESHOLD) return 'Recuperação';
   return 'Reprovado';
 };
 
 export const calculateFinalStatus = (mf?: number, mg?: number): 'Aprovado' | 'Reprovado' | undefined => {
   if (mg === undefined) return undefined;
-  if (mg >= 6.0) return 'Aprovado';
+  // se mg já garante aprovação, devolvemos Aprovado
+  if (mg >= PASS_THRESHOLD) return 'Aprovado';
   if (mf === undefined) return undefined;
-  return mf >= 5.0 ? 'Aprovado' : 'Reprovado';
+  return mf >= PASS_THRESHOLD ? 'Aprovado' : 'Reprovado';
 };
 
 export const needsRecoveryExam = (mg?: number): boolean => {
   if (mg === undefined) return false;
-  return mg < 6.0 && mg >= 4.0;
+  return mg < PASS_THRESHOLD && mg >= RECOVERY_THRESHOLD;
 };
 
 export const recalculateStudent = (student: Student): Student => {
@@ -58,7 +74,7 @@ export const recalculateStudent = (student: Student): Student => {
 
 export const calculateClassAnalytics = (students: Student[]): ClassAnalytics => {
   const validStudents = students.filter((s) => s.mg !== undefined);
-  
+
   const classAverage = validStudents.length > 0
     ? Number((validStudents.reduce((sum, s) => sum + (s.mg || 0), 0) / validStudents.length).toFixed(2))
     : 0;

@@ -1,62 +1,36 @@
-//client/src/api/disciplines.ts
+// client/src/api/disciplines.ts
+
+// client/src/api/disciplines.ts
+
 import api from './api';
 import { DisciplineClass } from '@/types/academic';
 
-// Description: Get all discipline-class combinations for the logged-in professor
-// Endpoint: GET /api/disciplines/professor
-// Request: {}
-// Response: { disciplineClasses: Array<DisciplineClass> }
-export const getProfessorDisciplines = async () => {
-  // Mocking the response
-  return new Promise<{ disciplineClasses: DisciplineClass[] }>((resolve) => {
-    setTimeout(() => {
-      resolve({
-        disciplineClasses: [
-          {
-            _id: '1',
-            disciplineName: 'Matemática',
-            disciplineCode: 'MAT101',
-            className: 'Turma 9º A',
-            academicYear: '2024',
-            teacherId: 'teacher1',
-            teacherName: 'Prof. João Silva',
-          },
-          {
-            _id: '2',
-            disciplineName: 'Física',
-            disciplineCode: 'FIS201',
-            className: 'Turma 9º A',
-            academicYear: '2024',
-            teacherId: 'teacher1',
-            teacherName: 'Prof. João Silva',
-          },
-          {
-            _id: '3',
-            disciplineName: 'Matemática',
-            disciplineCode: 'MAT101',
-            className: 'Turma 9º B',
-            academicYear: '2024',
-            teacherId: 'teacher1',
-            teacherName: 'Prof. João Silva',
-          },
-          {
-            _id: '4',
-            disciplineName: 'Química',
-            disciplineCode: 'QUI301',
-            className: 'Turma 8º A',
-            academicYear: '2024',
-            teacherId: 'teacher1',
-            teacherName: 'Prof. João Silva',
-          },
-        ],
-      });
-    }, 800);
-  });
-  // Uncomment the below lines to make an actual API call
-  // try {
-  //   const response = await api.get('/api/disciplines/professor');
-  //   return response.data;
-  // } catch (error: any) {
-  //   throw new Error(error?.response?.data?.message || error.message);
-  // }
+/**
+ * 🔹 Busca todas as turmas/disciplina atribuídas ao professor logado
+ * Endpoint: GET /api/professor/disciplinas
+ */
+export const getProfessorDisciplines = async (): Promise<{ disciplineClasses: DisciplineClass[] }> => {
+  try {
+    // ✅ Corrigido: rota conforme backend real
+    const response = await api.get('/api/professor/disciplinas');
+
+    // Validação defensiva da resposta
+    if (!response?.data || !Array.isArray(response.data.disciplineClasses)) {
+      console.error('⚠️ Resposta inesperada da API:', response.data);
+      throw new Error('Formato inesperado de resposta ao buscar disciplinas do professor.');
+    }
+
+    return response.data as { disciplineClasses: DisciplineClass[] };
+  } catch (error: any) {
+    // ✅ Logging aprimorado para facilitar diagnóstico no console do browser
+    console.error('❌ Erro ao buscar disciplinas do professor:', error);
+
+    // Garante uma mensagem legível mesmo sem response.data
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Erro desconhecido ao buscar disciplinas.';
+
+    throw new Error(message);
+  }
 };

@@ -1,116 +1,127 @@
-import axios, { AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import JSONbig from 'json-bigint';
+//client/src/api/api.ts
 
-const localApi = axios.create({
+// client/src/api/api.ts
+
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosError,
+  InternalAxiosRequestConfig
+} from "axios";
+import JSONbig from "json-bigint";
+
+// ==============================================
+// CONFIGURAÇÃO DO AXIOS
+// ==============================================
+const localApi: AxiosInstance = axios.create({
+  baseURL: "/api", // 🔹 importante: garante que vá para o proxy do Vite (porta 3000)
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-  validateStatus: (status) => {
-    return status >= 200 && status < 300;
-  },
-  transformResponse: [(data) => JSONbig.parse(data)]
+  validateStatus: (status) => status >= 200 && status < 300,
+  transformResponse: [
+    (data) => {
+      try {
+        return JSONbig.parse(data);
+      } catch {
+        return data;
+      }
+    },
+  ],
 });
 
 let accessToken: string | null = null;
 
-// Check if the URL is for the refresh token endpoint to avoid infinite loops
+// ==============================================
+// FUNÇÃO AUXILIAR
+// ==============================================
 const isRefreshTokenEndpoint = (url: string): boolean => {
-  return url.includes("/api/auth/refresh");
+  return url.includes("/auth/refresh"); // Corrigido: removeu "/api" pois url é relativa (sem baseURL)
 };
 
-const setupInterceptors = (apiInstance: typeof axios) => {
+// ==============================================
+// INTERCEPTORES
+// ==============================================
+const setupInterceptors = (apiInstance: AxiosInstance) => {
+  // REQUEST ------------------------------------------------------
   apiInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
       if (!accessToken) {
-        accessToken = localStorage.getItem('accessToken');
+        accessToken = localStorage.getItem("accessToken");
       }
       if (accessToken && config.headers) {
         config.headers.Authorization = `Bearer ${accessToken}`;
       }
-
       return config;
     },
     (error: AxiosError): Promise<AxiosError> => Promise.reject(error)
   );
 
+  // RESPONSE ------------------------------------------------------
   apiInstance.interceptors.response.use(
     (response) => response,
     async (error: AxiosError): Promise<unknown> => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-      // Only refresh token when we get a 401/403 error (token is invalid/expired)
-      if (error.response?.status && [401, 403].includes(error.response.status) &&
-          !originalRequest._retry &&
-          originalRequest.url && !isRefreshTokenEndpoint(originalRequest.url)) {
+      // Se token expirou (401/403) e ainda não tentamos refresh
+      if (
+        error.response?.status &&
+        [401, 403].includes(error.response.status) &&
+        !originalRequest._retry &&
+        originalRequest.url &&
+        !isRefreshTokenEndpoint(originalRequest.url)
+      ) {
         originalRequest._retry = true;
 
         try {
-          const refreshToken = localStorage.getItem('refreshToken');
-          if (!refreshToken) {
-            throw new Error('No refresh token available');
-          }
+          const refreshToken = localStorage.getItem("refreshToken");
+          if (!refreshToken) throw new Error("No refresh token available");
 
-          const response = await localApi.post(`/api/auth/refresh`, {
-            refreshToken,
-          });
+          const response = await localApi.post(`/auth/refresh`, { refreshToken });
+          const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+            response.data.data;
 
-          if (response.data.data) {
-            const newAccessToken = response.data.data.accessToken;
-            const newRefreshToken = response.data.data.refreshToken;
+          // Atualiza tokens no localStorage
+          localStorage.setItem("accessToken", newAccessToken);
+          localStorage.setItem("refreshToken", newRefreshToken);
+          accessToken = newAccessToken;
 
-            localStorage.setItem('accessToken', newAccessToken);
-            localStorage.setItem('refreshToken', newRefreshToken);
-            accessToken = newAccessToken;
-
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-            }
-          } else {
-            throw new Error('Invalid response from refresh token endpoint');
-          }
-
+          // Atualiza header e refaz a requisição original
           if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           }
-          return localApi;
+
+          return localApi(originalRequest);
         } catch (err) {
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('accessToken');
+          // Falhou ao renovar: limpa tokens e redireciona
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
           accessToken = null;
-          window.location.href = '/login';
+          window.location.href = "/login";
           return Promise.reject(err);
         }
       }
 
+      // Outros erros
       return Promise.reject(error);
     }
   );
 };
 
+// Inicializa interceptores
 setupInterceptors(localApi);
 
-
+// ==============================================
+// API FINAL EXPORTADA
+// ==============================================
 const api = {
-  request: (config: AxiosRequestConfig) => {
-    const apiInstance = localApi;
-    return apiInstance(config);
-  },
-  get: (url: string, config?: AxiosRequestConfig) => {
-    const apiInstance = localApi;
-    return apiInstance.get(url, config);
-  },
-  post: (url: string, data?: unknown, config?: AxiosRequestConfig) => {
-    const apiInstance = localApi;
-    return apiInstance.post(url, data, config);
-  },
-  put: (url: string, data?: unknown, config?: AxiosRequestConfig) => {
-    const apiInstance = localApi;
-    return apiInstance.put(url, data, config);
-  },
-  delete: (url: string, config?: AxiosRequestConfig) => {
-    const apiInstance = localApi;
-    return apiInstance.delete(url, config);
-  },
+  request: (config: AxiosRequestConfig) => localApi(config),
+  get: (url: string, config?: AxiosRequestConfig) => localApi.get(url, config),
+  post: (url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    localApi.post(url, data, config),
+  put: (url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    localApi.put(url, data, config),
+  delete: (url: string, config?: AxiosRequestConfig) => localApi.delete(url, config),
 };
 
 export default api;

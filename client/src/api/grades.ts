@@ -1,94 +1,120 @@
 //client/src/api/grades.ts
+
 import api from './api';
-import { GradeData, Student } from '@/types/academic';
+import { Student } from '@/types/academic';
 
-// Description: Get grade data for a specific discipline-class combination
-// Endpoint: GET /api/grades/:disciplineClassId
-// Request: {}
-// Response: { gradeData: GradeData }
-export const getGradeData = async (disciplineClassId: string) => {
-  // Mocking the response
-  return new Promise<{ gradeData: GradeData }>((resolve) => {
-    setTimeout(() => {
-      const mockStudents: Student[] = Array.from({ length: 25 }, (_, i) => ({
-        _id: `student-${i + 1}`,
-        number: i + 1,
-        name: `Aluno ${i + 1} da Silva`,
-        bim1: Math.random() > 0.1 ? Number((Math.random() * 10).toFixed(1)) : undefined,
-        bim2: Math.random() > 0.2 ? Number((Math.random() * 10).toFixed(1)) : undefined,
-        bim3: Math.random() > 0.3 ? Number((Math.random() * 10).toFixed(1)) : undefined,
-        bim4: Math.random() > 0.4 ? Number((Math.random() * 10).toFixed(1)) : undefined,
-      }));
+// Tipagem de resposta vinda do backend
+interface GradeInfo {
+  _id: string;
+  nome: string;
+  matricula: string;
+  notas: {
+    avaliacao1?: number | null;
+    avaliacao2?: number | null;
+    avaliacao3?: number | null;
+    final?: number | null;
+  };
+  media: number | null;
+  situacao: 'Aprovado' | 'Reprovado' | 'Recuperação' | 'Pendente' | null;
+}
 
-      resolve({
-        gradeData: {
-          disciplineClass: {
-            _id: disciplineClassId,
-            disciplineName: 'Matemática',
-            disciplineCode: 'MAT101',
-            className: 'Turma 9º A',
-            academicYear: '2024',
-            teacherId: 'teacher1',
-            teacherName: 'Prof. João Silva',
-          },
-          students: mockStudents,
-        },
-      });
-    }, 1000);
-  });
-  // Uncomment the below lines to make an actual API call
-  // try {
-  //   const response = await api.get(`/api/grades/${disciplineClassId}`);
-  //   return response.data;
-  // } catch (error: any) {
-  //   throw new Error(error?.response?.data?.message || error.message);
-  // }
+/**
+ * 🔹 Busca notas de todos os alunos de uma turma e disciplina
+ * Endpoint: GET /api/notas/:turmaId/:disciplinaId
+ */
+export const getGradeData = async (turmaId: string, disciplinaId: string) => {
+  try {
+    const response = await api.get(`/api/notas/${turmaId}/${disciplinaId}`);
+    return response.data as GradeInfo[];
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || error.message);
+  }
 };
 
-// Description: Update a student's grade
-// Endpoint: PUT /api/grades/:disciplineClassId/student/:studentId
-// Request: { field: string, value: number }
-// Response: { success: boolean, message: string }
+/**
+ * 🔹 Atualiza a nota de um único aluno
+ * Estratégia: chamamos o mesmo endpoint /api/notas/salvar com apenas 1 update
+ * Endpoint: POST /api/notas/salvar
+ * Body: { turmaId, disciplinaId, updates: [{ alunoId, avaliacaoType, nota }] }
+ */
 export const updateStudentGrade = async (
-  disciplineClassId: string,
+  turmaId: string,
+  disciplinaId: string,
   studentId: string,
-  field: string,
-  value: number
+  field: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final',
+  value: number | null
 ) => {
-  // Mocking the response
-  return new Promise<{ success: boolean; message: string }>((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, message: 'Nota atualizada com sucesso' });
-    }, 300);
-  });
-  // Uncomment the below lines to make an actual API call
-  // try {
-  //   const response = await api.put(`/api/grades/${disciplineClassId}/student/${studentId}`, {
-  //     field,
-  //     value,
-  //   });
-  //   return response.data;
-  // } catch (error: any) {
-  //   throw new Error(error?.response?.data?.message || error.message);
-  // }
+  try {
+    const response = await api.post(`/api/notas/salvar`, {
+      turmaId,
+      disciplinaId,
+      updates: [{ alunoId: studentId, avaliacaoType: field, nota: value }],
+    });
+    return response.data as { message: string };
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || error.message);
+  }
 };
 
-// Description: Save all grades for a discipline-class
-// Endpoint: POST /api/grades/:disciplineClassId/save-all
-// Request: { students: Array<Student> }
-// Response: { success: boolean, message: string }
-export const saveAllGrades = async (disciplineClassId: string, students: Student[]) => {
-  // Mocking the response
-  return new Promise<{ success: boolean; message: string }>((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, message: 'Todas as notas foram salvas com sucesso' });
-    }, 800);
-  });
-  // Uncomment the below lines to make an actual API call
-  // try {
-  //   const response = await api.post(`/api/grades/${disciplineClassId}/save-all`, { students });
-  //   return response.data;
-  // } catch (error: any) {
-  //   throw new Error(error?.response?.data?.message || error.message);
-  // }
+/**
+ * 🔹 Salva em lote as notas de todos os alunos de uma turma/disciplina
+ * Endpoint: POST /api/notas/salvar
+ * Body: { turmaId, disciplinaId, updates: [...] }
+ */
+export const saveAllGrades = async (
+  turmaId: string,
+  disciplinaId: string,
+  students: Student[]
+) => {
+  try {
+    // Transforma o array de students no formato de updates esperado
+    const updates = students.flatMap((student) => {
+      const updatesForStudent: {
+        alunoId: string;
+        avaliacaoType: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final';
+        nota: number | null;
+      }[] = [];
+
+      if (student.bim1 !== undefined) {
+        updatesForStudent.push({
+          alunoId: student._id,
+          avaliacaoType: 'avaliacao1',
+          nota: student.bim1 ?? null,
+        });
+      }
+      if (student.bim2 !== undefined) {
+        updatesForStudent.push({
+          alunoId: student._id,
+          avaliacaoType: 'avaliacao2',
+          nota: student.bim2 ?? null,
+        });
+      }
+      if (student.bim3 !== undefined) {
+        updatesForStudent.push({
+          alunoId: student._id,
+          avaliacaoType: 'avaliacao3',
+          nota: student.bim3 ?? null,
+        });
+      }
+      if (student.bim4 !== undefined) {
+        updatesForStudent.push({
+          alunoId: student._id,
+          avaliacaoType: 'final',
+          nota: student.bim4 ?? null,
+        });
+      }
+
+      return updatesForStudent;
+    });
+
+    const response = await api.post(`/api/notas/salvar`, {
+      turmaId,
+      disciplinaId,
+      updates,
+    });
+
+    return response.data as { message: string };
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || error.message);
+  }
 };

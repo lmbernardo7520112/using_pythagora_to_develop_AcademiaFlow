@@ -1,25 +1,33 @@
 // server/routes/professorRoutes.ts
-import { Router, Request, Response } from 'express';
-import { getDisciplinasByProfessor } from '../services/professorService';
-import { requireUser } from './middlewares/auth'; // Importa seu middleware
-import { ROLES } from 'shared'; // Importa ROLES para usar as constantes
+
+import { Router, Request, Response } from "express";
+import { getDisciplinasByProfessor } from "../services/professorService";
+import { requireUser } from "./middlewares/auth";
+import { ROLES } from "shared";
 
 const router = Router();
 
-// Endpoint para listar disciplinas de um professor
+// ===================================================
+// ROTA: Disciplinas do professor autenticado
+// ===================================================
 router.get(
-  '/api/professor/disciplinas', // <--- Prefixei com /api aqui
-  requireUser([ROLES.PROFESSOR]), // Usa o middleware requireUser, permitindo apenas a role 'professor'
+  "/api/professor/disciplinas",
+  requireUser([ROLES.PROFESSOR]), // Apenas professores
   async (req: Request, res: Response) => {
     try {
-      // req.user já está tipado como IUser, então podemos acessar _id diretamente
-      const professorId = req.user!._id.toString(); // ! para garantir que req.user não é undefined aqui
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized: no user in request." });
+      }
 
+      const professorId = req.user._id.toString();
       const disciplinas = await getDisciplinasByProfessor(professorId);
-      res.json(disciplinas);
+
+      return res.json({ success: true, data: disciplinas });
     } catch (error: any) {
-      console.error(error);
-      res.status(500).json({ message: error.message || 'Error fetching professor disciplines.' });
+      console.error("Error in /api/professor/disciplinas:", error);
+      res
+        .status(500)
+        .json({ message: error.message || "Error fetching professor disciplines." });
     }
   }
 );
