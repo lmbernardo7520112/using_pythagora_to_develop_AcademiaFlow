@@ -22,7 +22,7 @@ interface ProfessorDiscipline {
 export const getDisciplinasByProfessor = async (professorId: string): Promise<ProfessorDiscipline[]> => {
   try {
     const turmasDoProfessor = await Turma.find({ professor: professorId })
-      .populate('disciplina')
+      .populate('disciplinas') // ✅ Correto! Agora no plural
       .lean();
 
     const disciplinasMap = new Map<string, ProfessorDiscipline>();

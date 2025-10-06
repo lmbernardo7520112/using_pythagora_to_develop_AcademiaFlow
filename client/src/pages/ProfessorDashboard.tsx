@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/useToast';
 export function ProfessorDashboard() {
   const [disciplineClasses, setDisciplineClasses] = useState<DisciplineClass[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export function ProfessorDashboard() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">Dashboard do Professor</h1>
-          <p className="text-muted-foreground">Bem-vindo, {user?.name || 'Professor'}</p>
+          <p className="text-muted-foreground">Bem-vindo, {currentUser?.name || 'Professor'}</p>
         </div>
       </div>
 
