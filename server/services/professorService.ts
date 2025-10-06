@@ -1,5 +1,7 @@
 // server/services/professorService.ts
 
+
+
 import { HydratedDocument } from 'mongoose';
 import { IDisciplina, Disciplina } from '../models/Disciplina';
 import { ITurma } from '../models/Turma';
@@ -19,25 +21,25 @@ interface ProfessorDiscipline {
 
 export const getDisciplinasByProfessor = async (professorId: string): Promise<ProfessorDiscipline[]> => {
   try {
-    const turmasDoProfessor: HydratedDocument<ITurma>[] = await Turma.find({ professor: professorId })
-      .populate<{ disciplina: HydratedDocument<IDisciplina> }>('disciplina')
+    const turmasDoProfessor = await Turma.find({ professor: professorId })
+      .populate('disciplina')
       .lean();
 
     const disciplinasMap = new Map<string, ProfessorDiscipline>();
 
-    for (const turma of turmasDoProfessor) {
+    for (const turma of turmasDoProfessor as any[]) { // Cast to any[] to avoid type errors with lean()
       if (turma.disciplina) {
-        const disciplinaId = turma.disciplina._id.toString();
+        const disciplinaId = (turma.disciplina as any)._id.toString();
         if (!disciplinasMap.has(disciplinaId)) {
           disciplinasMap.set(disciplinaId, {
             _id: disciplinaId,
-            nome: turma.disciplina.nome,
-            codigo: turma.disciplina.codigo,
+            nome: (turma.disciplina as any).nome,
+            codigo: (turma.disciplina as any).codigo,
             turmas: [],
           });
         }
         disciplinasMap.get(disciplinaId)?.turmas.push({
-          _id: turma._id.toString(),
+          _id: (turma._id as any).toString(),
           nome: turma.nome,
         });
       }

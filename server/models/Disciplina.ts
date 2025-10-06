@@ -17,13 +17,13 @@ const DisciplinaSchema = new Schema<IDisciplina>(
   {
     nome: {
       type: String,
-      required: [true, 'Nome da disciplina é obrigatório'],
+      required: [true, 'Nome da discipline é obrigatório'],
       trim: true,
-      maxlength: [100, 'Nome da disciplina não pode exceder 100 caracteres'],
+      maxlength: [100, 'Nome da discipline não pode exceder 100 caracteres'],
     },
     codigo: {
       type: String,
-      required: [true, 'Código da disciplina é obrigatório'],
+      required: [true, 'Código da discipline é obrigatório'],
       unique: true,
       uppercase: true,
       match: [/^[A-Z0-9_-]+$/, 'Código deve conter apenas letras, números e traços'],
@@ -79,10 +79,7 @@ const DisciplinaSchema = new Schema<IDisciplina>(
   }
 );
 
-// Índices úteis para consultas e consistência
-DisciplinaSchema.index({ codigo: 1 }, { unique: true });
-DisciplinaSchema.index({ professor: 1 });
-DisciplinaSchema.index({ turma: 1 });
+// Removidas as linhas de índices duplicados
 
 // Modelo
 const Disciplina = mongoose.model<IDisciplina>('Disciplina', DisciplinaSchema);

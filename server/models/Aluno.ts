@@ -26,7 +26,7 @@ const AlunoSchema = new Schema<IAluno>(
       unique: true,
       match: [/^[A-Z0-9_-]+$/, 'Matrícula deve conter apenas letras, números e traços'],
       uppercase: true,
-      index: true,
+      // Removido: index: true (desnecessário com unique: true)
     },
     email: {
       type: String,
@@ -74,10 +74,7 @@ const AlunoSchema = new Schema<IAluno>(
   }
 );
 
-// Índices auxiliares
-AlunoSchema.index({ matricula: 1 }, { unique: true });
-AlunoSchema.index({ email: 1 }, { unique: true });
-AlunoSchema.index({ turma: 1 });
+// Removidas as linhas de índices duplicados
 
 // Modelo
 const Aluno = mongoose.model<IAluno>('Aluno', AlunoSchema);

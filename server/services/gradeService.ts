@@ -1,5 +1,6 @@
 // server/services/gradeService.ts
 
+
 import mongoose, { Types } from 'mongoose';
 import { INota, Nota } from '../models/Nota';
 import { IAluno, Aluno } from '../models/Aluno';
@@ -47,16 +48,11 @@ export const getGradesByTurmaAndDisciplina = async (
 
     for (const aluno of alunosDaTurma) {
       const notaExistente = notas.find((n) => {
-        // `n.aluno` pode ser um ObjectId ou um objeto populado
-        const alunoPopulado = n.alunoId as IAluno | Types.ObjectId | undefined;
+        // `n.aluno` é o campo populado
+        const alunoPopulado = n.alunoId as unknown as IAluno | null;
 
-        if (!alunoPopulado) return false;
+        if (!alunoPopulado || !alunoPopulado._id) return false;
 
-        if (alunoPopulado instanceof Types.ObjectId) {
-          return alunoPopulado.toString() === aluno._id.toString();
-        }
-
-        // Caso seja documento populado
         return alunoPopulado._id.toString() === aluno._id.toString();
       });
 

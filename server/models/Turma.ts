@@ -1,4 +1,5 @@
 // server/models/Turma.ts
+
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface ITurma extends Document {
@@ -81,7 +82,7 @@ const TurmaSchema = new Schema<ITurma>(
 
 // 🔹 Índices
 TurmaSchema.index({ nome: 1, ano: 1 }, { unique: true });
-TurmaSchema.index({ professor: 1 });
+// Removida: TurmaSchema.index({ professor: 1 }); (duplicação)
 TurmaSchema.index({ ano: -1 });
 
 // 🔹 Virtual (útil em dashboards e relatórios)
@@ -92,4 +93,3 @@ TurmaSchema.virtual('qtdAlunos').get(function (this: ITurma) {
 const Turma = mongoose.model<ITurma>('Turma', TurmaSchema);
 export default Turma;
 export { Turma };
-
