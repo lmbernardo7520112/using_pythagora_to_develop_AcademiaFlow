@@ -19,12 +19,13 @@ router.get(
       }
 
       const professorId = req.user._id.toString();
-      console.log(`[Backend] Fetching disciplines for professor ID: ${professorId}`); // <--- Adicione este log
-      console.log(`[Backend] Type of professorId: ${typeof professorId}`); // <--- Adicione este log
+      console.log(`[Backend] Fetching disciplines for professor ID: ${professorId}`);
+      console.log(`[Backend] Type of professorId: ${typeof professorId}`);
 
       const disciplinas = await getDisciplinasByProfessor(professorId);
 
-      console.log(`[Backend] Found ${disciplinas.length} disciplines for professor ID: ${professorId}`); // <--- Adicione este log
+      console.log(`[Backend] Found ${disciplinas.length} disciplines for professor ID: ${professorId}`);
+      console.log(`[Backend] Disciplinas retornadas:`, JSON.stringify(disciplinas, null, 2)); // <--- ADICIONE ESTE LOG
 
       return res.json({ success: true, data: disciplinas });
     } catch (error: any) {
