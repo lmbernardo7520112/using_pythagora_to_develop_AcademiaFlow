@@ -1,3 +1,4 @@
+//client/src/types.academic.ts
 export interface Student {
   _id: string;
   number: number;

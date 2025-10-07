@@ -24,9 +24,11 @@ interface GradeInfo {
  */
 export const getGradeData = async (turmaId: string, disciplinaId: string) => {
   try {
-    const response = await api.get(`/api/notas/${turmaId}/${disciplinaId}`);
+    // ✅ CORRIGIDO: Removido '/api' redundante (baseURL já tem '/api')
+    const response = await api.get(`/notas/${turmaId}/${disciplinaId}`);
     return response.data as GradeInfo[];
   } catch (error: any) {
+    console.error('Error fetching grade data:', error);
     throw new Error(error?.response?.data?.message || error.message);
   }
 };
@@ -45,13 +47,15 @@ export const updateStudentGrade = async (
   value: number | null
 ) => {
   try {
-    const response = await api.post(`/api/notas/salvar`, {
+    // ✅ CORRIGIDO: Removido '/api' redundante
+    const response = await api.post(`/notas/salvar`, {
       turmaId,
       disciplinaId,
       updates: [{ alunoId: studentId, avaliacaoType: field, nota: value }],
     });
     return response.data as { message: string };
   } catch (error: any) {
+    console.error('Error updating student grade:', error);
     throw new Error(error?.response?.data?.message || error.message);
   }
 };
@@ -107,7 +111,8 @@ export const saveAllGrades = async (
       return updatesForStudent;
     });
 
-    const response = await api.post(`/api/notas/salvar`, {
+    // ✅ CORRIGIDO: Removido '/api' redundante
+    const response = await api.post(`/notas/salvar`, {
       turmaId,
       disciplinaId,
       updates,
@@ -115,6 +120,7 @@ export const saveAllGrades = async (
 
     return response.data as { message: string };
   } catch (error: any) {
+    console.error('Error saving all grades:', error);
     throw new Error(error?.response?.data?.message || error.message);
   }
 };

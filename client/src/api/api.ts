@@ -1,6 +1,5 @@
 //client/src/api/api.ts
 
-// client/src/api/api.ts
 
 import axios, {
   AxiosInstance,

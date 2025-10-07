@@ -1,140 +1,167 @@
 // server/services/gradeService.ts
 
+
 import mongoose from 'mongoose';
-import { Nota } from '../models/Nota';
+import { Nota, INotaLean } from '../models/Nota';
 import { Aluno } from '../models/Aluno';
-import { calculateGrade } from '../lib/gradeCalculations';
 
 interface GradeUpdate {
   alunoId: string;
-  avaliacaoType:
-    | 'avaliacao1'
-    | 'avaliacao2'
-    | 'avaliacao3'
-    | 'avaliacao4'
-    | 'pf'
-    | 'final';
+  avaliacaoType: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'avaliacao4' | 'pf' | 'final';
   nota: number | null;
 }
 
-interface GradeInfo {
-  _id: string;
-  nome: string;
-  matricula: string;
-  notas: Record<
-    'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'avaliacao4' | 'pf' | 'final',
-    number | null | undefined
-  >;
-  media: number | null;
-  situacao: 'Aprovado' | 'Reprovado' | 'Recuperação' | 'Pendente' | null;
-}
-
 /**
- * 🔹 Recupera todas as notas de uma turma e disciplina, populando alunos
+ * 🔹 Busca todas as notas de uma turma + disciplina
+ * Retorna array com informações dos alunos e suas respectivas notas
  */
 export const getGradesByTurmaAndDisciplina = async (
   turmaId: string,
   disciplinaId: string
-): Promise<GradeInfo[]> => {
+) => {
   try {
-    const notas = await Nota.find({ turmaId, disciplinaId })
-      .populate('alunoId')
-      .lean()
-      .exec();
+    console.log('📚 Fetching grades for:', { turmaId, disciplinaId });
 
-    const alunos = await Aluno.find({ turmaId }).lean();
+    // ✅ Validação de IDs
+    if (!mongoose.Types.ObjectId.isValid(turmaId)) {
+      throw new Error(`Invalid turmaId: ${turmaId}`);
+    }
+    if (!mongoose.Types.ObjectId.isValid(disciplinaId)) {
+      throw new Error(`Invalid disciplinaId: ${disciplinaId}`);
+    }
 
-    const results: GradeInfo[] = alunos.map((aluno) => {
-      const notaDoc = notas.find(
-        (n) =>
-          String(
-            (n.alunoId as any)?._id ?? n.alunoId
-          ) === String(aluno._id)
-      );
+    // 1️⃣ Buscar todos os alunos da turma
+    const alunos = await Aluno.find({ turmaId: new mongoose.Types.ObjectId(turmaId) })
+      .select('_id nome matricula')
+      .lean();
+
+    console.log(`✅ Found ${alunos.length} students in turma ${turmaId}`);
+
+    if (alunos.length === 0) {
+      console.warn('⚠️ No students found for this turma');
+      return [];
+    }
+
+    // 2️⃣ Buscar notas existentes para esses alunos nesta disciplina
+    const alunoIds = alunos.map((a) => a._id);
+    const notas = await Nota.find({
+      alunoId: { $in: alunoIds },
+      disciplinaId: new mongoose.Types.ObjectId(disciplinaId),
+      turmaId: new mongoose.Types.ObjectId(turmaId),
+    }).lean<INotaLean[]>();
+
+    console.log(`✅ Found ${notas.length} grade records`);
+
+    // 3️⃣ Mapear notas por alunoId para acesso rápido
+    const notasMap = new Map<string, INotaLean>();
+    notas.forEach((nota) => {
+      const alunoIdStr = nota.alunoId.toString();
+      notasMap.set(alunoIdStr, nota);
+    });
+
+    // 4️⃣ Montar resposta com todos os alunos (com ou sem notas)
+    const result = alunos.map((aluno) => {
+      const alunoIdStr = aluno._id.toString();
+      const notaRecord = notasMap.get(alunoIdStr);
 
       return {
-        _id: aluno._id.toString(),
+        _id: alunoIdStr,
         nome: aluno.nome,
         matricula: aluno.matricula,
-        notas: {
-          avaliacao1: notaDoc?.notas?.avaliacao1 ?? null,
-          avaliacao2: notaDoc?.notas?.avaliacao2 ?? null,
-          avaliacao3: notaDoc?.notas?.avaliacao3 ?? null,
-          avaliacao4: notaDoc?.notas?.avaliacao4 ?? null,
-          pf: notaDoc?.notas?.pf ?? null,
-          final: notaDoc?.notas?.final ?? null,
-        },
-        media: notaDoc?.media ?? null,
-        situacao: notaDoc?.situacao ?? null,
+        notas: notaRecord
+          ? {
+              avaliacao1: notaRecord.notas.avaliacao1 ?? null,
+              avaliacao2: notaRecord.notas.avaliacao2 ?? null,
+              avaliacao3: notaRecord.notas.avaliacao3 ?? null,
+              final: notaRecord.notas.final ?? null,
+            }
+          : {
+              avaliacao1: null,
+              avaliacao2: null,
+              avaliacao3: null,
+              final: null,
+            },
+        media: notaRecord?.media ?? null,
+        situacao: notaRecord?.situacao ?? 'Pendente',
       };
     });
 
-    return results;
+    console.log('✅ Grade data prepared:', result.length, 'records');
+    return result;
   } catch (error) {
-    console.error('❌ Error fetching grades:', error);
-    throw new Error('Could not retrieve grades.');
+    console.error('❌ Error in getGradesByTurmaAndDisciplina:', error);
+    throw error;
   }
 };
 
 /**
- * 🔹 Salva notas de forma transacional e consistente
- * - Evita uso de `$set` com `undefined`
- * - Calcula `media` e `situacao` antes do update
- * - Usa `withTransaction` para garantir atomicidade
+ * 🔹 Salva/atualiza notas em lote para uma turma + disciplina
+ * Usa transação do MongoDB para garantir atomicidade
  */
 export const saveGrades = async (
   turmaId: string,
   disciplinaId: string,
   updates: GradeUpdate[],
   updatedBy: string
-): Promise<void> => {
+) => {
   const session = await mongoose.startSession();
+  session.startTransaction();
 
   try {
-    await session.withTransaction(async () => {
-      for (const update of updates) {
-        const { alunoId, avaliacaoType, nota } = update;
-
-        // Obtém documento atual (pode não existir ainda)
-        const existing = await Nota.findOne({
-          alunoId,
-          turmaId,
-          disciplinaId,
-        }).session(session);
-
-        // Reconstrói notas atualizadas sem campos undefined
-        const notasAtuais = existing?.notas ? { ...existing.notas } : {};
-        if (nota === null) {
-          delete notasAtuais[avaliacaoType];
-        } else {
-          notasAtuais[avaliacaoType] = nota;
-        }
-
-        // Calcula média e situação antes de persistir
-        const { media, situacao } = calculateGrade(notasAtuais);
-
-        // Monta objeto de update sem `undefined`
-        const updateObj: any = {
-          notas: notasAtuais,
-          media,
-          situacao,
-          updatedBy,
-          updatedAt: new Date(),
-        };
-
-        await Nota.findOneAndUpdate(
-          { alunoId, turmaId, disciplinaId },
-          updateObj,
-          { upsert: true, new: true, session }
-        );
-      }
+    console.log('💾 Saving grades:', {
+      turmaId,
+      disciplinaId,
+      updatesCount: updates.length,
+      updatedBy,
     });
 
-    console.log('✅ Grades saved successfully (transaction committed)');
+    // ✅ Validação de IDs
+    if (!mongoose.Types.ObjectId.isValid(turmaId)) {
+      throw new Error(`Invalid turmaId: ${turmaId}`);
+    }
+    if (!mongoose.Types.ObjectId.isValid(disciplinaId)) {
+      throw new Error(`Invalid disciplinaId: ${disciplinaId}`);
+    }
+    if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
+      throw new Error(`Invalid updatedBy: ${updatedBy}`);
+    }
+
+    for (const update of updates) {
+      const { alunoId, avaliacaoType, nota } = update;
+
+      if (!mongoose.Types.ObjectId.isValid(alunoId)) {
+        console.error(`❌ Invalid alunoId: ${alunoId}`);
+        continue; // Pula este update
+      }
+
+      // 🔹 Usar findOneAndUpdate com upsert para criar ou atualizar
+      await Nota.findOneAndUpdate(
+        {
+          alunoId: new mongoose.Types.ObjectId(alunoId),
+          disciplinaId: new mongoose.Types.ObjectId(disciplinaId),
+          turmaId: new mongoose.Types.ObjectId(turmaId),
+        },
+        {
+          $set: {
+            [`notas.${avaliacaoType}`]: nota,
+            updatedBy: new mongoose.Types.ObjectId(updatedBy),
+          },
+        },
+        {
+          upsert: true, // ✅ Cria se não existir
+          new: true,
+          session,
+        }
+      );
+    }
+
+    await session.commitTransaction();
+    console.log('✅ Grades saved successfully');
   } catch (error) {
-    console.error('❌ Transaction aborted:', error);
-    throw new Error('Could not save grades (transaction failed).');
+    await session.abortTransaction();
+    console.error('❌ Error saving grades, transaction aborted:', error);
+    throw error;
   } finally {
-    await session.endSession();
+    session.endSession();
   }
 };
