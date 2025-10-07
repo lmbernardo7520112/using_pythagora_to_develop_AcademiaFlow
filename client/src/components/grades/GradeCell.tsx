@@ -1,20 +1,24 @@
 //client/src/components/grades/Gradecell.tsx
+
 import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Loader2, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { validateGrade } from '@/utils/gradeCalculations';
+import { validateGrade } from '@/utils/gradeCalculations'; // Assumindo que validateGrade lida com vazio/null
 
 interface GradeCellProps {
-  value?: number;
+  // ✅ CORREÇÃO: 'value' pode ser 'number', 'null' ou 'undefined'
+  value?: number | null; 
   editable: boolean;
-  onSave: (value: number) => Promise<void>;
+  // ✅ CORREÇÃO: 'onSave' agora aceita 'number | null'
+  onSave: (value: number | null) => Promise<void>; 
   className?: string;
 }
 
 export function GradeCell({ value, editable, onSave, className }: GradeCellProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState(value?.toString() || '');
+  // ✅ CORREÇÃO: Inicializa inputValue com uma string vazia se value for null/undefined
+  const [inputValue, setInputValue] = useState(value !== null && value !== undefined ? value.toString() : '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string>('');
@@ -22,7 +26,8 @@ export function GradeCell({ value, editable, onSave, className }: GradeCellProps
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    setInputValue(value?.toString() || '');
+    // ✅ CORREÇÃO: Atualiza inputValue se value mudar e não for null/undefined
+    setInputValue(value !== null && value !== undefined ? value.toString() : '');
   }, [value]);
 
   useEffect(() => {
@@ -41,16 +46,17 @@ export function GradeCell({ value, editable, onSave, className }: GradeCellProps
   };
 
   const handleBlur = () => {
-    if (inputValue === (value?.toString() || '')) {
+    // ✅ CORREÇÃO: Comparar inputValue com o valor original (string vazia se null/undefined)
+    const originalValueString = value !== null && value !== undefined ? value.toString() : '';
+    if (inputValue === originalValueString) {
       setIsEditing(false);
       setError('');
       return;
     }
 
     if (inputValue === '') {
-      setInputValue(value?.toString() || '');
-      setIsEditing(false);
-      setError('');
+      // Se o campo for deixado vazio, salvamos como null
+      handleSave(null); // ✅ CORREÇÃO: Chamar handleSave com null
       return;
     }
 
@@ -60,7 +66,7 @@ export function GradeCell({ value, editable, onSave, className }: GradeCellProps
       return;
     }
 
-    handleSave();
+    handleSave(parseFloat(inputValue)); // ✅ CORREÇÃO: Chamar handleSave com o valor parseado
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -68,19 +74,20 @@ export function GradeCell({ value, editable, onSave, className }: GradeCellProps
       e.preventDefault();
       inputRef.current?.blur();
     } else if (e.key === 'Escape') {
-      setInputValue(value?.toString() || '');
+      // ✅ CORREÇÃO: Resetar para o valor original, que pode ser null/undefined
+      setInputValue(value !== null && value !== undefined ? value.toString() : '');
       setIsEditing(false);
       setError('');
     }
   };
 
-  const handleSave = async () => {
-    const numValue = parseFloat(inputValue);
+  // ✅ CORREÇÃO: 'handleSave' agora aceita 'number | null'
+  const handleSave = async (gradeToSave: number | null) => {
     setIsSaving(true);
     setSaveStatus('idle');
 
     try {
-      await onSave(numValue);
+      await onSave(gradeToSave); // ✅ Passa o valor (number ou null) diretamente para onSave
       setSaveStatus('success');
       setIsEditing(false);
       setError('');
@@ -100,7 +107,8 @@ export function GradeCell({ value, editable, onSave, className }: GradeCellProps
     }
   };
 
-  const displayValue = value !== undefined ? value.toFixed(1) : '-';
+  // ✅ CORREÇÃO: Exibir '-' se o valor for null ou undefined
+  const displayValue = (value !== undefined && value !== null) ? value.toFixed(1) : '-';
 
   return (
     <div className="relative group">
@@ -108,7 +116,7 @@ export function GradeCell({ value, editable, onSave, className }: GradeCellProps
         <div className="space-y-1">
           <Input
             ref={inputRef}
-            type="text"
+            type="text" // Mantido como 'text' para permitir input vazio e validação customizada
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onBlur={handleBlur}
@@ -117,6 +125,7 @@ export function GradeCell({ value, editable, onSave, className }: GradeCellProps
               'h-8 text-center',
               error && 'border-destructive animate-shake'
             )}
+            placeholder={editable ? '0.0' : '-'} // Adicionado placeholder
           />
           {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
@@ -126,7 +135,7 @@ export function GradeCell({ value, editable, onSave, className }: GradeCellProps
           className={cn(
             'h-8 flex items-center justify-center rounded-md transition-all',
             editable && 'cursor-pointer hover:bg-primary/10 hover:border hover:border-primary',
-            !editable && 'bg-muted',
+            !editable && 'bg-muted', // Aplica bg-muted apenas se não for editável
             saveStatus === 'success' && 'bg-green-100 dark:bg-green-900/20',
             className
           )}

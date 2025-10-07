@@ -1,32 +1,19 @@
 //client/src/api/grades.ts
 
-import api from './api';
-import { Student } from '@/types/academic';
+// client/src/api/grades.ts
 
-// Tipagem de resposta vinda do backend
-interface GradeInfo {
-  _id: string;
-  nome: string;
-  matricula: string;
-  notas: {
-    avaliacao1?: number | null;
-    avaliacao2?: number | null;
-    avaliacao3?: number | null;
-    final?: number | null;
-  };
-  media: number | null;
-  situacao: 'Aprovado' | 'Reprovado' | 'Recuperação' | 'Pendente' | null;
-}
+import api from './api';
+import { FrontendStudent, BackendGradeInfo, GradeUpdatePayload } from '@/types/academic'; // ✅ CORREÇÃO: Importar tipos ajustados
 
 /**
  * 🔹 Busca notas de todos os alunos de uma turma e disciplina
  * Endpoint: GET /api/notas/:turmaId/:disciplinaId
  */
-export const getGradeData = async (turmaId: string, disciplinaId: string) => {
+export const getGradeData = async (turmaId: string, disciplinaId: string): Promise<BackendGradeInfo[]> => {
   try {
     // ✅ CORRIGIDO: Removido '/api' redundante (baseURL já tem '/api')
     const response = await api.get(`/notas/${turmaId}/${disciplinaId}`);
-    return response.data as GradeInfo[];
+    return response.data; // O retorno já deve ser um array de BackendGradeInfo
   } catch (error: any) {
     console.error('Error fetching grade data:', error);
     throw new Error(error?.response?.data?.message || error.message);
@@ -43,17 +30,20 @@ export const updateStudentGrade = async (
   turmaId: string,
   disciplinaId: string,
   studentId: string,
-  field: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final',
+  // ✅ CORREÇÃO: Usar os tipos de avaliação do backend
+  field: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final' | 'pf', 
   value: number | null
-) => {
+): Promise<{ message: string }> => {
   try {
+    const updates: GradeUpdatePayload[] = [{ alunoId: studentId, avaliacaoType: field, nota: value }];
+
     // ✅ CORRIGIDO: Removido '/api' redundante
     const response = await api.post(`/notas/salvar`, {
       turmaId,
       disciplinaId,
-      updates: [{ alunoId: studentId, avaliacaoType: field, nota: value }],
+      updates,
     });
-    return response.data as { message: string };
+    return response.data;
   } catch (error: any) {
     console.error('Error updating student grade:', error);
     throw new Error(error?.response?.data?.message || error.message);
@@ -68,44 +58,30 @@ export const updateStudentGrade = async (
 export const saveAllGrades = async (
   turmaId: string,
   disciplinaId: string,
-  students: Student[]
-) => {
+  students: FrontendStudent[] // ✅ CORREÇÃO: Receber FrontendStudent
+): Promise<{ message: string }> => {
   try {
     // Transforma o array de students no formato de updates esperado
-    const updates = students.flatMap((student) => {
-      const updatesForStudent: {
-        alunoId: string;
-        avaliacaoType: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final';
-        nota: number | null;
-      }[] = [];
+    const updates: GradeUpdatePayload[] = students.flatMap((student) => {
+      const updatesForStudent: GradeUpdatePayload[] = [];
 
+      // ✅ CORREÇÃO: Mapear 'bim' do frontend para 'avaliacao'/'final' do backend
       if (student.bim1 !== undefined) {
-        updatesForStudent.push({
-          alunoId: student._id,
-          avaliacaoType: 'avaliacao1',
-          nota: student.bim1 ?? null,
-        });
+        updatesForStudent.push({ alunoId: student._id, avaliacaoType: 'avaliacao1', nota: student.bim1 ?? null });
       }
       if (student.bim2 !== undefined) {
-        updatesForStudent.push({
-          alunoId: student._id,
-          avaliacaoType: 'avaliacao2',
-          nota: student.bim2 ?? null,
-        });
+        updatesForStudent.push({ alunoId: student._id, avaliacaoType: 'avaliacao2', nota: student.bim2 ?? null });
       }
       if (student.bim3 !== undefined) {
-        updatesForStudent.push({
-          alunoId: student._id,
-          avaliacaoType: 'avaliacao3',
-          nota: student.bim3 ?? null,
-        });
+        updatesForStudent.push({ alunoId: student._id, avaliacaoType: 'avaliacao3', nota: student.bim3 ?? null });
       }
+      // O 'bim4' do frontend é 'final' no backend
       if (student.bim4 !== undefined) {
-        updatesForStudent.push({
-          alunoId: student._id,
-          avaliacaoType: 'final',
-          nota: student.bim4 ?? null,
-        });
+        updatesForStudent.push({ alunoId: student._id, avaliacaoType: 'final', nota: student.bim4 ?? null });
+      }
+      // Adicione 'pf' se estiver sendo usado no frontend
+      if (student.pf !== undefined) {
+        updatesForStudent.push({ alunoId: student._id, avaliacaoType: 'pf', nota: student.pf ?? null });
       }
 
       return updatesForStudent;
@@ -118,7 +94,7 @@ export const saveAllGrades = async (
       updates,
     });
 
-    return response.data as { message: string };
+    return response.data;
   } catch (error: any) {
     console.error('Error saving all grades:', error);
     throw new Error(error?.response?.data?.message || error.message);
