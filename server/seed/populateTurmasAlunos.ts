@@ -1,6 +1,6 @@
 // server/seed/populateTurmasAlunos.ts
-// server/seed/populateTurmasAlunos.ts
-import mongoose from "mongoose";
+
+import mongoose, { Types } from "mongoose";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -10,9 +10,13 @@ import { Turma } from "../models/Turma.js";
 import { Disciplina } from "../models/Disciplina.js";
 import { Nota } from "../models/Nota.js";
 import User from "../models/User.js";
+import { IDisciplina } from "../models/Disciplina.js"; // para tipagem explícita
 
 // 🧩 Helper para garantir tipo ObjectId
-const toObjectId = (id: any): mongoose.Types.ObjectId => new mongoose.Types.ObjectId(id);
+const toObjectId = (id: any): Types.ObjectId => {
+  if (id instanceof Types.ObjectId) return id;
+  return new Types.ObjectId(id);
+};
 
 async function run() {
   try {
@@ -39,17 +43,21 @@ async function run() {
     console.log(`👨‍🏫 Professor vinculado: ${professor.email}`);
 
     // 🔹 Buscar disciplina Física ou criar fallback
-    let disciplina = await Disciplina.findOne({ nome: /Física/i });
-    if (!disciplina) {
-      disciplina = await Disciplina.create({
+    let disciplinaDoc = await Disciplina.findOne({ nome: /Física/i });
+
+    if (!disciplinaDoc) {
+      disciplinaDoc = await Disciplina.create({
         nome: "Física",
         descricao: "Disciplina de fallback criada automaticamente.",
         cargaHoraria: 60,
       });
       console.log("⚠️ Disciplina 'Física' não encontrada — criada automaticamente.");
     } else {
-      console.log(`📘 Disciplina encontrada: ${disciplina.nome}`);
+      console.log(`📘 Disciplina encontrada: ${disciplinaDoc.nome}`);
     }
+
+    // Força tipagem correta (resolve o erro de "unknown")
+    const disciplinaId: Types.ObjectId = toObjectId(disciplinaDoc._id);
 
     // 🔹 Iterar sobre turmas
     for (const turmaData of data.turmas) {
@@ -65,15 +73,15 @@ async function run() {
           nome: nome_turma,
           ano,
           professor: toObjectId(professor._id),
-          disciplinas: [toObjectId(disciplina._id)],
+          disciplinas: [disciplinaId],
           alunos: [],
           ativo: true,
         });
         console.log(`✅ Turma criada: ${nome_turma}`);
       } else {
         // Se já existir, garantir que a disciplina Física está vinculada
-        if (!turma.disciplinas.some((id) => id.equals(disciplina._id))) {
-          turma.disciplinas.push(toObjectId(disciplina._id));
+        if (!turma.disciplinas.some((id) => id.equals(disciplinaId))) {
+          turma.disciplinas.push(disciplinaId);
           console.log(`➕ Disciplina 'Física' vinculada à turma existente ${nome_turma}`);
         }
       }
@@ -104,15 +112,15 @@ async function run() {
         // Criar registro de Nota se não existir
         const existsNota = await Nota.findOne({
           alunoId,
-          disciplinaId: toObjectId(disciplina._id),
-          turmaId: toObjectId(turma._id),
+          disciplinaId,
+          turmaId: turma._id,
         });
 
         if (!existsNota) {
           await Nota.create({
             alunoId,
-            disciplinaId: toObjectId(disciplina._id),
-            turmaId: toObjectId(turma._id),
+            disciplinaId,
+            turmaId: turma._id,
             notas: {
               avaliacao1: null,
               avaliacao2: null,
