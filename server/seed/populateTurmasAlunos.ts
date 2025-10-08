@@ -1,43 +1,62 @@
 // server/seed/populateTurmasAlunos.ts
-import mongoose from 'mongoose';
-import fs from 'node:fs';
-import path from 'node:path';
+// server/seed/populateTurmasAlunos.ts
+import mongoose from "mongoose";
+import fs from "node:fs";
+import path from "node:path";
 
-// ⚠️ Importações devem terminar com .js para ESM funcionar corretamente
-import { Aluno } from '../models/Aluno.js';
-import { Turma } from '../models/Turma.js';
-import { Disciplina } from '../models/Disciplina.js';
-import { Nota } from '../models/Nota.js';
-import User from '../models/User.js';
+// ⚠️ Importações com extensão .js (necessário em ESM)
+import { Aluno } from "../models/Aluno.js";
+import { Turma } from "../models/Turma.js";
+import { Disciplina } from "../models/Disciplina.js";
+import { Nota } from "../models/Nota.js";
+import User from "../models/User.js";
+
+// 🧩 Helper para garantir tipo ObjectId
+const toObjectId = (id: any): mongoose.Types.ObjectId => new mongoose.Types.ObjectId(id);
 
 async function run() {
   try {
-    // 🔹 Conexão com MongoDB
-    const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/academia_flow_db';
-    await mongoose.connect(MONGO_URI);
-    console.log('✅ Conectado ao MongoDB');
+    console.log("🚀 Iniciando seed de turmas e alunos...\n");
 
-    // 🔹 Caminho para o JSON
-    const jsonPath = path.resolve('./turmas_alunos.json');
+    // 🔹 Conexão com MongoDB
+    const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/academia_flow_db";
+    await mongoose.connect(MONGO_URI);
+    console.log("✅ Conectado ao MongoDB");
+
+    // 🔹 Caminho do JSON
+    const jsonPath = path.resolve("./turmas_alunos.json");
     if (!fs.existsSync(jsonPath)) {
-      throw new Error(`❌ Arquivo não encontrado em: ${jsonPath}`);
+      throw new Error(`❌ Arquivo não encontrado: ${jsonPath}`);
     }
 
     // 🔹 Carregar JSON
-    const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+    const data = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
 
     // 🔹 Buscar professor existente
-    const professor = await User.findOne({ role: 'professor' });
-    if (!professor) throw new Error('❌ Nenhum professor encontrado no sistema.');
+    const professor = await User.findOne({ role: "professor" });
+    if (!professor) throw new Error("❌ Nenhum professor encontrado no sistema.");
 
-    // 🔹 Buscar disciplina Física
-    const disciplina = await Disciplina.findOne({ nome: /Física/i });
-    if (!disciplina) throw new Error('❌ Disciplina "Física" não encontrada.');
+    console.log(`👨‍🏫 Professor vinculado: ${professor.email}`);
 
-    // 🔹 Iterar sobre turmas do arquivo
+    // 🔹 Buscar disciplina Física ou criar fallback
+    let disciplina = await Disciplina.findOne({ nome: /Física/i });
+    if (!disciplina) {
+      disciplina = await Disciplina.create({
+        nome: "Física",
+        descricao: "Disciplina de fallback criada automaticamente.",
+        cargaHoraria: 60,
+      });
+      console.log("⚠️ Disciplina 'Física' não encontrada — criada automaticamente.");
+    } else {
+      console.log(`📘 Disciplina encontrada: ${disciplina.nome}`);
+    }
+
+    // 🔹 Iterar sobre turmas
     for (const turmaData of data.turmas) {
       const { nome_turma, alunos } = turmaData;
       const ano = 2025;
+
+      console.log(`\n🏫 Processando turma: ${nome_turma}`);
 
       // Criar turma se não existir
       let turma = await Turma.findOne({ nome: nome_turma, ano });
@@ -45,18 +64,24 @@ async function run() {
         turma = await Turma.create({
           nome: nome_turma,
           ano,
-          professor: professor._id,
-          disciplinas: [disciplina._id],
+          professor: toObjectId(professor._id),
+          disciplinas: [toObjectId(disciplina._id)],
           alunos: [],
           ativo: true,
         });
-        console.log(`📘 Turma criada: ${nome_turma}`);
+        console.log(`✅ Turma criada: ${nome_turma}`);
+      } else {
+        // Se já existir, garantir que a disciplina Física está vinculada
+        if (!turma.disciplinas.some((id) => id.equals(disciplina._id))) {
+          turma.disciplinas.push(toObjectId(disciplina._id));
+          console.log(`➕ Disciplina 'Física' vinculada à turma existente ${nome_turma}`);
+        }
       }
 
       // Inserir alunos
       for (const aluno of alunos) {
-        const matricula = `${nome_turma.replace(/\s+/g, '')}-${aluno.numero}`.toUpperCase();
-        const email = `${aluno.nome.toLowerCase().replace(/\s+/g, '.')}@escola.com`;
+        const matricula = `${nome_turma.replace(/\s+/g, "")}-${aluno.numero}`.toUpperCase();
+        const email = `${aluno.nome.toLowerCase().replace(/\s+/g, ".")}@escola.com`;
 
         let alunoDoc = await Aluno.findOne({ matricula });
         if (!alunoDoc) {
@@ -66,10 +91,10 @@ async function run() {
             email,
             turma: turma._id,
           });
-          console.log(`👩‍🎓 Aluno inserido: ${aluno.nome}`);
+          console.log(`👩‍🎓 Novo aluno inserido: ${aluno.nome}`);
         }
 
-        const alunoId = alunoDoc._id as mongoose.Types.ObjectId;
+        const alunoId = toObjectId(alunoDoc._id);
 
         // Vincular aluno à turma (sem duplicar)
         if (!turma.alunos.some((id) => id.equals(alunoId))) {
@@ -78,16 +103,16 @@ async function run() {
 
         // Criar registro de Nota se não existir
         const existsNota = await Nota.findOne({
-          alunoId: alunoId,
-          disciplineId: disciplina._id,
-          turmaId: turma._id,
+          alunoId,
+          disciplinaId: toObjectId(disciplina._id),
+          turmaId: toObjectId(turma._id),
         });
 
         if (!existsNota) {
           await Nota.create({
-            alunoId: alunoId,
-            disciplinaId: disciplina._id,
-            turmaId: turma._id,
+            alunoId,
+            disciplinaId: toObjectId(disciplina._id),
+            turmaId: toObjectId(turma._id),
             notas: {
               avaliacao1: null,
               avaliacao2: null,
@@ -97,24 +122,24 @@ async function run() {
               final: null,
             },
             media: null,
-            situacao: 'Pendente',
+            situacao: "Pendente",
           });
           console.log(`📝 Nota inicial criada para ${aluno.nome}`);
         }
       }
 
       await turma.save();
+      console.log(`💾 Turma ${nome_turma} salva com ${turma.alunos.length} alunos.`);
     }
 
-    console.log('\n🎉 Seed finalizado com sucesso!');
-    await mongoose.disconnect();
-    process.exit(0);
+    console.log("\n🎉 Seed finalizado com sucesso!");
   } catch (err) {
-    console.error('❌ Erro no seed:', err);
+    console.error("❌ Erro no seed:", err);
+  } finally {
     await mongoose.disconnect();
-    process.exit(1);
+    console.log("🔌 Conexão encerrada com MongoDB.");
+    process.exit(0);
   }
 }
 
 run();
-
