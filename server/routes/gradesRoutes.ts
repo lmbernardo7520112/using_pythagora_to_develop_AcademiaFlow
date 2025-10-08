@@ -1,8 +1,8 @@
 // server/routes/gradesRoutes.ts
 
 import { Router, Request, Response } from 'express';
-import { getGradesByTurmaAndDisciplina, saveGrades } from '../services/gradeService';
-import { requireUser } from './middlewares/auth'; // middleware de autenticação
+import { getGradesByTurmaAndDisciplina, saveGrades } from '../services/gradeService.js';
+import { requireUser } from './middlewares/auth.js'; // middleware de autenticação
 import { ROLES } from 'shared'; // Importa constantes de roles
 
 const router = Router();

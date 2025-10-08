@@ -1,9 +1,8 @@
 // server/services/gradeService.ts
 
-
 import mongoose from 'mongoose';
-import { Nota, INotaLean } from '../models/Nota';
-import { Aluno } from '../models/Aluno';
+import { Nota, INotaLean } from '../models/Nota.js';
+import { Aluno } from '../models/Aluno.js';
 
 interface GradeUpdate {
   alunoId: string;
@@ -73,12 +72,14 @@ export const getGradesByTurmaAndDisciplina = async (
               avaliacao1: notaRecord.notas.avaliacao1 ?? null,
               avaliacao2: notaRecord.notas.avaliacao2 ?? null,
               avaliacao3: notaRecord.notas.avaliacao3 ?? null,
+              pf: notaRecord.notas.pf ?? null, // ✅ ADICIONADO: Prova Final (PF)
               final: notaRecord.notas.final ?? null,
             }
           : {
               avaliacao1: null,
               avaliacao2: null,
               avaliacao3: null,
+              pf: null, // ✅ ADICIONADO: Prova Final (PF)
               final: null,
             },
         media: notaRecord?.media ?? null,
