@@ -1,5 +1,7 @@
 //client/src/App.tsx
 
+//client/src/App.tsx
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { ThemeProvider } from "./components/ui/theme-provider"
 import { Toaster } from "./components/ui/toaster"
@@ -22,8 +24,9 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/" element={<ProtectedRoute> <Layout /> </ProtectedRoute>}>
               <Route index element={<ProfessorDashboard />} />
-              {/* ✅ CORREÇÃO: A rota agora espera disciplinaId e turmaId */}
-              <Route path="grades/:disciplinaId/:turmaId" element={<GradeManagement />} />
+              {/* ✅ CORREÇÃO: A rota agora espera turmaId e depois disciplinaId,
+                  correspondendo à ordem do backend e do link. */}
+              <Route path="grades/:turmaId/:disciplinaId" element={<GradeManagement />} />
             </Route>
             <Route path="*" element={<BlankPage />} />
           </Routes>

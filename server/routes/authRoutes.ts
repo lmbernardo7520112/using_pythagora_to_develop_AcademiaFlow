@@ -1,10 +1,10 @@
 //server/routes/authRoutes.ts
 import express from 'express';
 import { Request, Response } from 'express';
-import UserService from '../services/userService';
-import { requireUser } from './middlewares/auth';
-import User from '../models/User';
-import { generateAccessToken, generateRefreshToken } from '../utils/auth';
+import UserService from '../services/userService.js';
+import { requireUser } from './middlewares/auth.js';
+import User from '../models/User.js';
+import { generateAccessToken, generateRefreshToken } from '../utils/auth.js';
 import jwt from 'jsonwebtoken';
 import { ALL_ROLES } from 'shared';
 

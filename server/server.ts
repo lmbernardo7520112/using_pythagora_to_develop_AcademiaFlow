@@ -2,10 +2,10 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import { Request, Response, NextFunction } from 'express';
-import basicRoutes from './routes/index';
-import authRoutes from './routes/authRoutes';
-import { connectDB } from './config/database';
-import dbInit from './models/init';
+import basicRoutes from './routes/index.js';
+import authRoutes from './routes/authRoutes.js';
+import { connectDB } from './config/database.js';
+import dbInit from './models/init.js';
 import cors from 'cors';
 
 // ==========================================================

@@ -1,108 +1,104 @@
 // client/src/types.academic.ts
 
+
 // --- Tipos para o Frontend (inclui campos calculados e nomes de campo de input) ---
-// ✅ CORREÇÃO: Renomeado para FrontendStudent para clareza e para corresponder à importação em grades.ts
-// Alternativamente, poderíamos mudar a importação em grades.ts de 'FrontendStudent' para 'Student'.
-// Optei por renomear aqui para manter a importação em grades.ts como está.
+// ✅ Mantém o nome FrontendStudent, mas agora também exporta alias Student para compatibilidade
 export interface FrontendStudent {
-  _id: string; // ID do aluno (MongoDB ObjectId) - CORRESPONDE a item._id na API
-  name: string; // Nome do aluno - CORRESPONDE a item.nome na API
-  number?: number; // Número do aluno na lista (gerado no frontend)
-  matricula: string; // Matrícula do aluno - CORRESPONDE a item.matricula na API
-  
-  // Campos de notas para input no frontend (bim1, bim2, bim3, bim4)
-  // Serão mapeados para avaliacao1, avaliacao2, avaliacao3, final no backend
-  bim1?: number | null; // CORRESPONDE a item.notas.avaliacao1
-  bim2?: number | null; // CORRESPONDE a item.notas.avaliacao2
-  bim3?: number | null; // CORRESPONDE a item.notas.avaliacao3
-  bim4?: number | null; // CORRESPONDE a item.notas.final do backend (final de disciplina)
+  _id: string; // ID do aluno (MongoDB ObjectId)
+  name: string; // Nome do aluno - corresponde a item.nome no backend
+  number?: number; // Número do aluno na lista
+  matricula: string;
 
-  // Campos calculados no frontend (Nota Final, Média Geral, Média Final)
-  nf?: number | null; // Nota Final (ex: média dos bims) - CORRESPONDE a item.media
-  mg?: number | null; // Média Geral (para decidir recuperação) - CORRESPONDE a item.media
-  mf?: number | null; // Média Final (após recuperação, se houver) - CORRESPONDE a item.media
+  // Campos de notas
+  bim1?: number | null;
+  bim2?: number | null;
+  bim3?: number | null;
+  bim4?: number | null;
 
-  // Situação do aluno
-  status?: 'Aprovado' | 'Recuperação' | 'Reprovado' | 'Pendente' | null; // CORRESPONDE a item.situacao
+  // Campos calculados
+  nf?: number | null;
+  mg?: number | null;
+  mf?: number | null;
 
-  // Campos de prova final (PF) e situação final (SF)
-  pf?: number | null; // Nota da Prova Final - CORRESPONDE a item.notas.pf
-  sf?: number | null; // Situação após a prova final
-  finalStatus?: 'Aprovado' | 'Reprovado' | null; // Status final após todo o processo
+  // Situação geral
+  status?: 'Aprovado' | 'Recuperação' | 'Reprovado' | 'Pendente' | null;
+
+  // Campos de prova final
+  pf?: number | null;
+  sf?: number | null;
+  finalStatus?: 'Aprovado' | 'Reprovado' | null;
 }
 
-// ✅ NOVO TIPO: BackendGradeInfo
-// Este tipo representa o formato de CADA ITEM retornado pela API GET /api/notas/:turmaId/:disciplinaId
-// É uma combinação dos dados da Nota com os dados do Aluno (provavelmente via populate ou aggregate no backend)
-export interface BackendGradeInfo {
-  _id: string; // ID da Nota no MongoDB (se for o ID da Nota) ou o ID do Aluno (se o endpoint estiver retornando dados do aluno e aninhando a nota)
-                // Assumindo que é o ID da Nota, mas o FrontendGradeManagement mapeia para _id do aluno.
-                // Idealmente, este seria o ID do ALUNO, se o retorno da API for uma agregação.
-  
-  // Dados do aluno, populados junto com a nota
-  nome: string; // Nome do aluno
-  matricula: string; // Matrícula do aluno
+// ✅ Alias para compatibilidade com imports antigos
+export type Student = FrontendStudent;
 
-  // O objeto 'notas' que contém as avaliações individuais e PF
+// ✅ Tipo representando cada item retornado pela API do backend
+export interface BackendGradeInfo {
+  _id: string;
+  nome: string;
+  matricula: string;
   notas: {
     avaliacao1: number | null;
     avaliacao2: number | null;
     avaliacao3: number | null;
-    avaliacao4: number | null; // Se existir no backend para algum outro fim, senão, 'final' é o 4º bimestre
-    pf: number | null; // Prova Final
-    final: number | null; // Nota Final da disciplina (média dos bimestres, etc.)
+    avaliacao4?: number | null;
+    pf: number | null;
+    final: number | null;
   };
-  
-  media: number | null; // Média geral calculada no backend
-  situacao: 'Aprovado' | 'Recuperação' | 'Reprovado' | 'Pendente' | null; // Situação do aluno calculada no backend
+  media: number | null;
+  situacao: 'Aprovado' | 'Recuperação' | 'Reprovado' | 'Pendente' | null;
+  alunoId?: string;
+  disciplinaId?: string;
+  turmaId?: string;
+}
 
-  // Outros campos que podem vir do backend (dependendo do populate/aggregate)
-  alunoId?: string; // O ID real do aluno, se o _id principal for o da Nota
-  disciplinaId?: string; // ID da disciplina
-  turmaId?: string; // ID da turma
+// Estatísticas calculadas para a turma — usadas no painel analítico
+export interface ClassAnalytics {
+  classAverage: number;
+  quarterAverages: {
+    bim1: number;
+    bim2: number;
+    bim3: number;
+    bim4: number;
+  };
+  median: number;
+  approved: number;
+  failed: number;
+  recovery: number;
+  highPerformers: number;
+  approvalRate: number;
 }
 
 
-// --- Tipos para Disciplinas e Turmas (como recebido do backend para o Dashboard) ---
-
-// Este é o tipo exato que o backend retorna para as disciplinas do professor
-// (conforme o console.log em server/routes/professorRoutes.ts e server/services/professorService.ts)
+// --- Tipos para Disciplinas e Turmas ---
 export interface ProfessorDisciplineWithTurmas {
-  _id: string; // ID da disciplina
-  nome: string; // Nome da disciplina
-  codigo: string; // Código da disciplina
+  _id: string;
+  nome: string;
+  codigo: string;
   professorId: string;
-  professorName: string; // Nome/email do professor (usado para exibir "Professor: email")
+  professorName: string;
   turmas: {
-    _id: string; // ID da turma
-    nome: string; // Nome da turma
-    ano: number; // Ano da turma
+    _id: string;
+    nome: string;
+    ano: number;
   }[];
 }
 
-// ✅ CORREÇÃO: Redefinindo DisciplineClass para ser como ProfessorDisciplineWithTurmas
-// Isso permite que o DisciplineCard mostre a disciplina e TODAS as suas turmas,
-// alinhando-se com o layout da imagem que você forneceu.
 export interface DisciplineClass {
-  _id: string; // ID da DISCIPLINA
-  disciplineName: string; // nome da disciplina
-  disciplineCode: string; // código da disciplina
-  professorEmail: string; // email do professor (corresponde a 'professorName' em ProfessorDisciplineWithTurmas)
-  
-  // Array de turmas associadas a esta disciplina
+  _id: string;
+  disciplineName: string;
+  disciplineCode: string;
+  professorEmail: string;
   turmas: {
-    _id: string; // ID da turma
-    nome: string; // Nome da turma
-    academicYear: number; // Ano letivo da turma (corresponde a 'ano' em ProfessorDisciplineWithTurmas)
+    _id: string;
+    nome: string;
+    academicYear: number;
   }[];
 }
 
-
-// --- Tipos para requisições de API (o payload para salvar notas) ---
-
-// Payload para um único update de nota que o backend espera
+// --- Payload de atualização de notas ---
 export interface GradeUpdatePayload {
   alunoId: string;
-  avaliacaoType: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final' | 'pf'; 
+  avaliacaoType: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final' | 'pf';
   nota: number | null;
 }

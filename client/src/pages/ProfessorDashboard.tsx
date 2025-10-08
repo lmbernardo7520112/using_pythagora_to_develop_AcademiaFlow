@@ -3,19 +3,18 @@
 import { useEffect, useState } from 'react';
 import { getProfessorDisciplines } from '@/api/disciplines';
 import { useAuth } from '@/contexts/AuthContext';
-import { GraduationCap, BookOpenText, Users, Mail, CalendarDays } from 'lucide-react'; // Novos ícones
+import { GraduationCap, BookOpenText, Users, Mail, CalendarDays } from 'lucide-react'; 
 import { useToast } from '@/hooks/useToast';
 import { Link } from 'react-router-dom';
 import { ProfessorDisciplineWithTurmas } from '@/types/academic';
 import { DisciplineCardSkeleton } from '@/components/dashboard/DisciplineCardSkeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'; // Para o DisciplineCard
-import { Button } from '@/components/ui/button'; // Para o botão Gerenciar Notas
-import { Separator } from '@/components/ui/separator'; // Para o separador
-import { cn } from '@/lib/utils'; // Para classes utilitárias
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
-// ✅ Componente DisciplineCard Corrigido para incluir o Link e usar o tipo correto
 interface DisciplineCardProps {
-  discipline: ProfessorDisciplineWithTurmas; // Recebe a disciplina com turmas
+  discipline: ProfessorDisciplineWithTurmas;
 }
 
 function DisciplineCard({ discipline }: DisciplineCardProps) {
@@ -26,7 +25,7 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
       border-2 border-gray-200 dark:border-gray-800 
       rounded-xl overflow-hidden 
       transform hover:scale-105
-      flex flex-col {/* Adicionado flex-col para o layout interno */}
+      flex flex-col
     ">
       <CardHeader className="bg-gradient-to-br from-blue-600 to-purple-700 text-white p-6 pb-4 relative">
         <div className="flex items-start justify-between">
@@ -43,7 +42,7 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
         </CardDescription>
         <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20"></div>
       </CardHeader>
-      <CardContent className="p-6 flex-grow flex flex-col justify-between"> {/* flex-grow para ocupar espaço */}
+      <CardContent className="p-6 flex-grow flex flex-col justify-between">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
             <Users className="h-5 w-5 text-purple-600" /> Turmas:
@@ -56,7 +55,9 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
                     {turma.nome} ({turma.ano})
                   </span>
                   <Link
-                    to={`/grades/${turma._id}/${discipline._id}`} // ✅ CORREÇÃO: Ordem dos IDs e usar discipline._id para a disciplina
+                    // ✅ CORREÇÃO: Ordem dos IDs para turmaId primeiro, disciplinaId segundo,
+                    // alinhando com a nova rota em App.tsx e a expectativa do backend.
+                    to={`/grades/${turma._id}/${discipline._id}`} 
                   >
                     <Button
                       variant="ghost"
@@ -77,7 +78,7 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
           )}
         </div>
         
-        <Separator className="mt-auto mb-4 bg-gray-200 dark:bg-gray-700" /> {/* Separator no final */}
+        <Separator className="mt-auto mb-4 bg-gray-200 dark:bg-gray-700" />
         <div className="text-sm text-gray-600 dark:text-gray-400 text-center">
           Atualizado em: {new Date().toLocaleDateString()}
         </div>

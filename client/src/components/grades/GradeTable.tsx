@@ -1,14 +1,17 @@
 //client/src/components/grades/Gradetable.tsx
 
-import { Student } from '@/types/academic'; // ✅ AGORA É O TIPO CONSOLIDADO DE STUDENT
+
+import { Student } from '@/types/academic';
 import { GradeTableRow } from './GradeTableRow';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface GradeTableProps {
   students: Student[];
-  // ✅ CORREÇÃO: Definir field para os nomes do backend que a API de salvar espera
-  // e aceitar 'null' para o valor
-  onGradeUpdate: (studentId: string, field: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final' | 'pf', value: number | null) => Promise<void>;
+  onGradeUpdate: (
+    studentId: string,
+    field: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final' | 'pf',
+    value: number | null
+  ) => Promise<void> | void;
 }
 
 export function GradeTable({ students, onGradeUpdate }: GradeTableProps) {
@@ -33,8 +36,12 @@ export function GradeTable({ students, onGradeUpdate }: GradeTableProps) {
         </TableHeader>
         <TableBody>
           {students.map((student, index) => (
-            // ✅ CORREÇÃO: Passar o index para GradeTableRow, se você precisar do 'Nº' para display
-            <GradeTableRow key={student._id} student={student} onGradeUpdate={onGradeUpdate} studentIndex={index} />
+            <GradeTableRow
+              key={student._id}
+              student={student}
+              onGradeUpdate={onGradeUpdate}
+              studentIndex={index}
+            />
           ))}
         </TableBody>
       </Table>

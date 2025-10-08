@@ -2,8 +2,8 @@
 import express from 'express';
 // Não precisamos de Request, Response aqui, pois apenas configuramos o roteador
 
-import professorRoutes from './professorRoutes';
-import gradesRoutes from './gradesRoutes';
+import professorRoutes from './professorRoutes.js';
+import gradesRoutes from './gradesRoutes.js';
 
 const router = express.Router();
 
