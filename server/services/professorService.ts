@@ -2,11 +2,11 @@
 
 
 import { HydratedDocument, Types } from 'mongoose';
-import { IDisciplina } from '../models/Disciplina';
-import { ITurma } from '../models/Turma'; // Importa ITurma
-import Turma from '../models/Turma';
-import { IUser } from '../models/User';
-import User from '../models/User'
+import { IDisciplina } from '../models/Disciplina.js';
+import { ITurma } from '../models/Turma.js'; // Importa ITurma
+import Turma from '../models/Turma.js';
+import { IUser } from '../models/User.js';
+import User from '../models/User.js'
 
 interface ProfessorDiscipline {
   _id: string;

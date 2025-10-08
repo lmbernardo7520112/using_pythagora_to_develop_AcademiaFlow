@@ -1,6 +1,6 @@
 // server/services/userService.ts (Conteúdo Inalterado, apenas para referência)
-import User, { IUser } from '../models/User';
-import { generatePasswordHash, validatePassword } from '../utils/password';
+import User, { IUser } from '../models/User.js';
+import { generatePasswordHash, validatePassword } from '../utils/password.js';
 
 interface CreateUserData {
   email: string;
