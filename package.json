@@ -2,12 +2,14 @@
   "name": "AcademiaFlow",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "postinstall": "concurrently -n \"shared,client,server\" \"npm run shared-install\" \"npm run client-install\" \"npm run server-install\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "client": "cd client && npm run dev",
     "client-install": "cd client && npm install",
     "server": "cd server && npm run dev",
+    "seed:turmas": "node --loader ts-node/esm server/seed/populateTurmasAlunos.ts",
     "server-install": "cd server && npm install",
     "shared-install": "cd shared && npm install && npm run build",
     "start": "concurrently -n \"client,server\" \"npm run client\" \"npm run server\"",
@@ -21,6 +23,7 @@
     "concurrently": "^9.1.0"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "ts-node": "^10.9.2"
   }
 }

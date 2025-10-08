@@ -1,8 +1,5 @@
 //client/src/types.academic.ts
 
-// client/src/types/academic.ts
-
-
 // --- Tipos para o Frontend (inclui campos calculados e nomes de campo de input) ---
 export interface Student {
   _id: string; // ID do aluno (MongoDB ObjectId)
