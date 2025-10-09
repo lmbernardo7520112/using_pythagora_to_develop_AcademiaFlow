@@ -4,8 +4,8 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { ALL_ROLES, ROLES } from "shared";
-import UserService from "../../services/userService";
-import { IUser } from "../../models/User";
+import UserService from "../../services/userService.js";
+import { IUser } from "../../models/User.js";
 
 // ===================================================
 // TIPAGEM DO req.user

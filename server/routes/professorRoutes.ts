@@ -2,8 +2,8 @@
 
 
 import { Router, Request, Response } from "express";
-import { getDisciplinasByProfessor } from "../services/professorService";
-import { requireUser } from "./middlewares/auth";
+import { getDisciplinasByProfessor } from "../services/professorService.js";
+import { requireUser } from "./middlewares/auth.js";
 import { ROLES } from "shared";
 
 const router = Router();
