@@ -1,6 +1,6 @@
 // server/models/User.ts
 import mongoose, { Document, Schema, Types } from 'mongoose';
-import { isPasswordHash } from '../utils/password';
+import { isPasswordHash } from '../utils/password.js';
 import { randomUUID } from 'crypto';
 import { ROLES } from 'shared'; // Importado corretamente de 'shared'
 

@@ -28,7 +28,7 @@ async function run() {
     console.log("✅ Conectado ao MongoDB");
 
     // 🔹 Caminho do JSON
-    const jsonPath = path.resolve("./turmas_alunos.json");
+    const jsonPath = path.resolve("./server/seed/turmas_alunos.json");
     if (!fs.existsSync(jsonPath)) {
       throw new Error(`❌ Arquivo não encontrado: ${jsonPath}`);
     }
@@ -88,7 +88,9 @@ async function run() {
 
       // Inserir alunos
       for (const aluno of alunos) {
-        const matricula = `${nome_turma.replace(/\s+/g, "")}-${aluno.numero}`.toUpperCase();
+        // Limpar nome_turma removendo caracteres não permitidos (apenas letras, números e traços)
+        const cleanedNomeTurma = nome_turma.replace(/[^A-Za-z0-9-]/g, "").toUpperCase();
+        const matricula = `${cleanedNomeTurma}-${aluno.numero}`;
         const email = `${aluno.nome.toLowerCase().replace(/\s+/g, ".")}@escola.com`;
 
         let alunoDoc = await Aluno.findOne({ matricula });

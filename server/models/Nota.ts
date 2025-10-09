@@ -1,8 +1,8 @@
 //server/models/Nota.ts
 
 import mongoose, { Schema, Document } from 'mongoose';
-import { IAluno } from './Aluno';
-import { calculateGrade } from '../lib/gradeCalculations'; // módulo unificado e agora consistente
+import { IAluno } from './Aluno.js';
+import { calculateGrade } from '../lib/gradeCalculations.js'; // módulo unificado e agora consistente
 
 export interface INota extends Document {
   alunoId: mongoose.Types.ObjectId;
