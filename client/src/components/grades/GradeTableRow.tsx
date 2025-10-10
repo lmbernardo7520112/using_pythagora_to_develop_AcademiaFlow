@@ -1,6 +1,4 @@
 //client/src/components/grades/GradeTableRow.tsx
-
-
 import { Student } from '@/types/academic';
 import { GradeCell } from './GradeCell';
 import { Badge } from '@/components/ui/badge';
@@ -23,12 +21,21 @@ export function GradeTableRow({ student, onGradeUpdate, studentIndex }: GradeTab
       case 'Aprovado': return 'bg-green-500 text-white';
       case 'Recuperação': return 'bg-yellow-500 text-white';
       case 'Reprovado': return 'bg-red-500 text-white';
+      case 'Pendente': return 'bg-gray-300 text-gray-700';
+      case 'Aguardando PF': return 'bg-blue-500 text-white'; // Adicionado para destaque visual
+      case 'N/A': return 'bg-gray-300 text-gray-700';
       default: return 'bg-gray-300 text-gray-700';
     }
   };
 
-  const needsRecovery = student.mg ? needsRecoveryExam(student.mg) : false;
+  const needsRecovery = student.mg !== undefined && student.mg !== null ? needsRecoveryExam(student.mg) : false;
   const displayName = student.name || (student as any).nome || 'Sem nome';
+
+  const sfDisplay = student.finalStatus 
+    ? student.finalStatus 
+    : needsRecovery && student.pf === null 
+      ? 'Aguardando PF' 
+      : 'N/A';
 
   return (
     <tr className="border-b hover:bg-muted/50 transition-colors">
@@ -44,13 +51,13 @@ export function GradeTableRow({ student, onGradeUpdate, studentIndex }: GradeTab
         </td>
       ))}
       <td className="p-3">
-        <GradeCell value={student.nf} editable={false} className="bg-muted" onSave={async () => {}} />
+        <GradeCell value={student.nf ?? null} editable={false} className="bg-muted" onSave={async () => {}} />
       </td>
       <td className="p-3">
-        <GradeCell value={student.mg} editable={false} className="bg-muted" onSave={async () => {}} />
+        <GradeCell value={student.mg ?? null} editable={false} className="bg-muted" onSave={async () => {}} />
       </td>
       <td className="p-3">
-        <GradeCell value={student.mf} editable={false} className="bg-muted" onSave={async () => {}} />
+        <GradeCell value={student.mf ?? null} editable={false} className="bg-muted" onSave={async () => {}} />
       </td>
       <td className="p-3 text-center">
         <Badge className={cn('font-semibold', getStatusColor(student.status))}>
@@ -59,15 +66,15 @@ export function GradeTableRow({ student, onGradeUpdate, studentIndex }: GradeTab
       </td>
       <td className="p-3">
         <GradeCell
-          value={student.pf}
+          value={student.pf ?? null}
           editable={needsRecovery}
           onSave={value => onGradeUpdate(student._id, 'pf', value)}
           className={!needsRecovery ? 'bg-muted' : ''}
         />
       </td>
       <td className="p-3 text-center">
-        <Badge className={cn('font-semibold', getStatusColor(student.finalStatus))}>
-          {student.finalStatus || (needsRecovery ? 'Aguardando PF' : 'N/A')}
+        <Badge className={cn('font-semibold', getStatusColor(sfDisplay))}>
+          {sfDisplay}
         </Badge>
       </td>
     </tr>

@@ -1,6 +1,4 @@
 //client/src/utils/gradeCalculations.ts
-
-
 import { Student, ClassAnalytics } from '@/types/academic';
 
 /**
@@ -56,10 +54,15 @@ export const needsRecoveryExam = (mg?: number): boolean => {
 };
 
 export const recalculateStudent = (student: Student): Student => {
-  const nf = calculateNF(student.bim1, student.bim2, student.bim3, student.bim4);
+  const nf = calculateNF(
+    student.bim1 ?? undefined,
+    student.bim2 ?? undefined,
+    student.bim3 ?? undefined,
+    student.bim4 ?? undefined
+  );
   const mg = calculateMG(nf);
   const status = calculateStatus(mg);
-  const mf = calculateMF(mg, student.pf);
+  const mf = calculateMF(mg, student.pf ?? undefined);
   const finalStatus = calculateFinalStatus(mf, mg);
 
   return {

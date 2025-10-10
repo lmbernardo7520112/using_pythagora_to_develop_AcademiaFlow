@@ -1,5 +1,4 @@
 // client/src/pages/GradeManagement.tsx
-
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Student, ClassAnalytics as ClassAnalyticsType, BackendGradeInfo } from '@/types/academic';
@@ -10,48 +9,7 @@ import { ClassAnalytics } from '@/components/grades/ClassAnalytics';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
-
-// --- Funções auxiliares ---
-const recalculateStudent = (student: Student): Student => {
-  const { bim1, bim2, bim3, bim4 } = student;
-  const grades = [bim1, bim2, bim3, bim4].filter(
-    (g): g is number => g !== undefined && g !== null
-  );
-  const nf = grades.length > 0 ? grades.reduce((sum, g) => sum + g, 0) / grades.length : null;
-  let status: Student['status'] = 'Pendente';
-  if (nf !== null) {
-    if (nf >= 7) status = 'Aprovado';
-    else if (nf >= 5) status = 'Recuperação';
-    else status = 'Reprovado';
-  }
-  return { ...student, nf, mg: nf, mf: nf, status };
-};
-
-const calculateClassAnalytics = (students: Student[]): ClassAnalyticsType => {
-  const validGrades = students.map(s => s.nf).filter((g): g is number => g != null);
-  const classAverage =
-    validGrades.length > 0 ? validGrades.reduce((sum, g) => sum + g, 0) / validGrades.length : 0;
-
-  const quarterAverages = {
-    bim1: avg(students, 'bim1'),
-    bim2: avg(students, 'bim2'),
-    bim3: avg(students, 'bim3'),
-    bim4: avg(students, 'bim4'),
-  };
-  const sorted = [...validGrades].sort((a, b) => a - b);
-  const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
-  const approved = students.filter(s => s.status === 'Aprovado').length;
-  const failed = students.filter(s => s.status === 'Reprovado').length;
-  const recovery = students.filter(s => s.status === 'Recuperação').length;
-  const highPerformers = students.filter(s => (s.nf ?? 0) >= 8).length;
-  const approvalRate = students.length ? (approved / students.length) * 100 : 0;
-  return { classAverage, quarterAverages, median, approved, failed, recovery, highPerformers, approvalRate };
-};
-
-function avg(students: Student[], field: keyof Pick<Student, 'bim1' | 'bim2' | 'bim3' | 'bim4'>) {
-  const vals = students.map(s => s[field]).filter((g): g is number => g != null);
-  return vals.length ? vals.reduce((s, g) => s + g, 0) / vals.length : 0;
-}
+import { recalculateStudent, calculateClassAnalytics } from '@/utils/gradeCalculations';
 
 export function GradeManagement() {
   // ✅ Esta linha já estava correta, mas agora funcionará como esperado 
