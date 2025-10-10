@@ -1,6 +1,5 @@
 //client/src/api/grades.ts
 
-// client/src/api/grades.ts
 
 import api from './api';
 import { FrontendStudent, BackendGradeInfo, GradeUpdatePayload } from '@/types/academic'; // ✅ CORREÇÃO: Importar tipos ajustados

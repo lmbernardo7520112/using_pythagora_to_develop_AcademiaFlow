@@ -1,3 +1,4 @@
+//client/src/components/grades/ClassAnalytics.tsx
 import { ClassAnalytics as ClassAnalyticsType } from '@/types/academic';
 import { AnalyticsCard } from './AnalyticsCard';
 import { TrendingUp, Users, Award, CheckCircle, XCircle, Target } from 'lucide-react';
