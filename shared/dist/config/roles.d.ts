@@ -1,3 +1,4 @@
+//shared/dist/config/roles.d.ts
 declare const ROLES: {
     readonly ADMIN: "admin";
     readonly USER: "user";
