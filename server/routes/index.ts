@@ -1,18 +1,20 @@
 // server/routes/index.ts
+
 import express from 'express';
 // Não precisamos de Request, Response aqui, pois apenas configuramos o roteador
 
 import professorRoutes from './professorRoutes.js';
 import gradesRoutes from './gradesRoutes.js';
+import secretariaRoutes from "./secretariaRoutes.js";
 
 const router = express.Router();
 
 // Root path response
-router.get("/", (req: express.Request, res: express.Request) => { // Use express.Request/Response
+router.get("/", (req: express.Request, res: express.Response) => { // Corrigido: Use express.Response para 'res'
   res.status(200).send("Welcome to Your Website!");
 });
 
-router.get("/ping", (req: express.Request, res: express.Request) => { // Use express.Request/Response
+router.get("/ping", (req: express.Request, res: express.Response) => { // Corrigido: Use express.Response para 'res'
   res.status(200).send("pong");
 });
 
@@ -22,6 +24,7 @@ router.get("/ping", (req: express.Request, res: express.Request) => { // Use exp
 // ==========================================================
 router.use(professorRoutes);
 router.use(gradesRoutes);
+router.use(secretariaRoutes);
 // ==========================================================
 
 export default router;
