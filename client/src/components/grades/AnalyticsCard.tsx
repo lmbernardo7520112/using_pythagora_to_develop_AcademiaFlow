@@ -1,3 +1,4 @@
+//client/src/components/grades/AnalyticsCard.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';

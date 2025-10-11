@@ -1,5 +1,4 @@
 //client/src/App.tsx
-// client/src/App.tsx
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/ui/theme-provider";
