@@ -1,4 +1,6 @@
 // server/services/secretariaService.ts
+
+// server/services/secretariaService.ts
 import mongoose from "mongoose";
 import Turma from "../models/Turma.js";
 import Aluno from "../models/Aluno.js";
@@ -6,7 +8,7 @@ import { getGradesByTurmaAndDisciplina } from "./gradeService.js";
 
 /**
  * Secretaria service — usa apenas modelos existentes e funções nomeadas do gradeService.
- * Todas as operações são additivas (não modificam schemas existentes).
+ * Todas as operações são aditivas (não modificam schemas existentes).
  */
 const secretariaService = {
   // -------------------- TURMAS --------------------
@@ -38,7 +40,6 @@ const secretariaService = {
 
   async createTurma(data: any) {
     try {
-      // validações mínimas — mantemos modelos como fonte da verdade
       if (!data.nome || !data.ano || !data.professor || !data.disciplinas) {
         throw new Error("Campos obrigatórios: nome, ano, professor, disciplinas");
       }
@@ -158,10 +159,28 @@ const secretariaService = {
   // -------------------- DASHBOARD / TAXAS --------------------
   async getDashboardGeral() {
     try {
+      // Contagens básicas
       const totalTurmas = await Turma.countDocuments({ ativo: true });
-      const totalAlunos = await Aluno.countDocuments({ ativo: true });
+      const totalAlunos = await Aluno.countDocuments();
+
+      // Contagem real de ativos e inativos
+      const ativos = await Aluno.countDocuments({ ativo: true });
       const inativos = await Aluno.countDocuments({ ativo: false });
-      return { totalTurmas, totalAlunos, inativos };
+
+      // Como o modelo atual não possui status específicos,
+      // os campos abaixo permanecem zerados, para manter compatibilidade com o frontend.
+      const transferidos = 0;
+      const desistentes = 0;
+      const abandonos = inativos; // alunos inativos considerados abandonos por ora
+
+      return {
+        totalTurmas,
+        totalAlunos,
+        ativos,
+        transferidos,
+        desistentes,
+        abandonos,
+      };
     } catch (error) {
       console.error("secretariaService.getDashboardGeral:", error);
       throw new Error("Erro ao gerar dashboard");
@@ -183,13 +202,6 @@ const secretariaService = {
     }
   },
 
-  /**
-   * getTaxasAprovacao - monta uma visão simplificada das taxas utilizando
-   * getGradesByTurmaAndDisciplina do gradeService (export nomeado).
-   *
-   * Observação: gradeService expõe funções de consulta de notas; o cálculo aqui
-   * aplica uma agregação simples por turma usando a primeira disciplina da turma.
-   */
   async getTaxasAprovacao(bimestre?: number) {
     try {
       const turmas = await Turma.find({ ativo: true }).lean();
@@ -216,7 +228,10 @@ const secretariaService = {
         };
       }
 
-      return { referencia: bimestre ? `Bimestre ${bimestre}` : "Geral", turmas: resultado };
+      return {
+        referencia: bimestre ? `Bimestre ${bimestre}` : "Geral",
+        turmas: resultado,
+      };
     } catch (error) {
       console.error("secretariaService.getTaxasAprovacao:", error);
       throw new Error("Erro ao calcular taxas de aprovação");

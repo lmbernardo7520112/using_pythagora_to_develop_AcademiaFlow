@@ -1,18 +1,28 @@
 // client/src/components/Sidebar.tsx
+
 // client/src/components/Sidebar.tsx
+
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
-import { LogOut, LayoutDashboard, Users, BookOpen, GraduationCap } from "lucide-react";
+import {
+  LogOut,
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  GraduationCap,
+  BarChart3,
+} from "lucide-react";
 
 /**
  * 🎯 Sidebar com menus dinâmicos por perfil (professor / secretaria)
+ * Agora inclui acesso aos Relatórios no painel da secretaria.
  */
 export function Sidebar() {
-  const { user, logout } = useAuth();
+  const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  const role = user?.role ?? "guest";
+  const role = currentUser?.role ?? "guest";
 
   // 🔹 Define os itens do menu de acordo com o role
   const menuItems =
@@ -26,6 +36,7 @@ export function Sidebar() {
           { label: "Dashboard", path: "/secretaria", icon: LayoutDashboard },
           { label: "Turmas", path: "/secretaria/turmas", icon: GraduationCap },
           { label: "Alunos", path: "/secretaria/alunos", icon: Users },
+          { label: "Relatórios", path: "/secretaria/relatorios", icon: BarChart3 }, // ✅ Novo item
         ]
       : [];
 
@@ -38,7 +49,11 @@ export function Sidebar() {
     <aside className="w-64 bg-card text-card-foreground border-r border-border flex flex-col justify-between">
       <div className="p-4 space-y-2">
         <h2 className="text-lg font-semibold tracking-tight">
-          {role === "secretaria" ? "Painel da Secretaria" : "Painel do Professor"}
+          {role === "secretaria"
+            ? "Painel da Secretaria"
+            : role === "professor"
+            ? "Painel do Professor"
+            : "Painel"}
         </h2>
 
         <nav className="mt-4 flex flex-col space-y-1">
@@ -63,7 +78,7 @@ export function Sidebar() {
 
       <div className="p-4 border-t border-border">
         <div className="text-sm mb-2 text-muted-foreground truncate">
-          {user?.email}
+          {currentUser?.email}
         </div>
         <Button
           variant="destructive"

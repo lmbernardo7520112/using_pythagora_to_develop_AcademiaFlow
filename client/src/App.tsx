@@ -1,5 +1,6 @@
 //client/src/App.tsx
 
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "./components/ui/toaster";
@@ -16,6 +17,7 @@ import { GradeManagement } from "./pages/GradeManagement";
 import SecretariaDashboard from "./pages/SecretariaDashboard";
 import SecretariaTurmas from "./pages/SecretariaTurmas";
 import SecretariaAlunos from "./pages/SecretariaAlunos";
+import SecretariaRelatorios from "./pages/SecretariaRelatorios";
 
 // ✅ Novo componente de redirecionamento por role
 import { RoleRedirect } from "./components/RoleRedirect";
@@ -68,18 +70,30 @@ function App() {
                 </ProtectedRoute>
               }
             >
+              {/* Painel principal */}
               <Route index element={<SecretariaDashboard />} />
+
+              {/* Lista de turmas */}
               <Route path="turmas" element={<SecretariaTurmas />} />
-              <Route path="alunos" element={<SecretariaAlunos />} />
+
+              {/* Alunos de uma turma específica */}
+              <Route
+                path="turmas/:turmaId/alunos"
+                element={<SecretariaAlunos />}
+              />
+
+              {/* Relatórios acadêmicos */}
+              <Route path="relatorios" element={<SecretariaRelatorios />} />
             </Route>
 
             {/* 🔹 Página de acesso não autorizado */}
             <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* 🔹 Página genérica */}
+            {/* 🔹 Página genérica (404) */}
             <Route path="*" element={<BlankPage />} />
           </Routes>
         </Router>
+
         <Toaster />
       </ThemeProvider>
     </AuthProvider>

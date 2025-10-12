@@ -21,7 +21,8 @@
   "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.2",
-    "concurrently": "^9.1.0"
+    "concurrently": "^9.1.0",
+    "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",

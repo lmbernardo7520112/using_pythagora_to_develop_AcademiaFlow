@@ -2,17 +2,17 @@
 
 import { Router, Request, Response } from 'express';
 import { getGradesByTurmaAndDisciplina, saveGrades } from '../services/gradeService.js';
-import { requireUser } from './middlewares/auth.js'; // middleware de autenticação
-import { ROLES } from 'shared'; // Importa constantes de roles
+import { requireUser } from './middlewares/auth.js';
+import { ROLES } from 'shared';
 
 const router = Router();
 
 /**
- * 🔹 GET /api/notas/:turmaId/:disciplinaId
- * Recupera as notas de todos os alunos de uma turma e disciplina
+ * GET /api/notas/:turmaId/:disciplinaId
+ * (o /api vem do index.ts)
  */
 router.get(
-  '/api/notas/:turmaId/:disciplinaId',
+  '/notas/:turmaId/:disciplinaId',
   requireUser([ROLES.PROFESSOR]),
   async (req: Request, res: Response) => {
     try {
@@ -23,9 +23,6 @@ router.get(
           .status(400)
           .json({ message: 'Turma ID and Disciplina ID are required.' });
       }
-
-      // Opcional: validar se o professor logado pode acessar essa turma/disciplina
-      // const professorId = req.user!._id.toString();
 
       const grades = await getGradesByTurmaAndDisciplina(turmaId, disciplinaId);
       res.json(grades);
@@ -39,11 +36,10 @@ router.get(
 );
 
 /**
- * 🔹 POST /api/notas/salvar
- * Salva ou atualiza notas de uma turma/disciplina em transação atômica
+ * POST /api/notas/salvar
  */
 router.post(
-  '/api/notas/salvar',
+  '/notas/salvar',
   requireUser([ROLES.PROFESSOR]),
   async (req: Request, res: Response) => {
     try {
@@ -56,7 +52,6 @@ router.post(
         });
       }
 
-      // 🔑 Agora passamos o professor logado como updatedBy
       const updatedBy = req.user?._id?.toString();
       if (!updatedBy) {
         return res.status(401).json({ message: 'Unauthorized: missing user.' });

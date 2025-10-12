@@ -1,28 +1,36 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "lib": ["ES2020"],
+    /* ===== Saída e entrada ===== */
+    "rootDir": "./",
+    "outDir": "./dist",
+    "noEmit": true,                        // ✅ Permite usar allowImportingTsExtensions
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    /* ===== Módulos e resolução ===== */
+    "target": "ES2022",
+    "lib": ["ES2022"],
     "module": "Node16",
     "moduleResolution": "Node16",
-    "outDir": "./dist",
-    "rootDir": "./",
+
+    /* 👇 Agora permitido graças ao noEmit */
+    "allowImportingTsExtensions": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+
+    /* ===== Verificações e consistência ===== */
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+
+    /* ===== Ambiente Node ===== */
     "types": ["node"],
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+
+    /* ===== Build ===== */
+    "noEmitOnError": true
   },
-  "include": [
-    "**/*.ts",
-    "types/**/*.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["**/*.ts", "types/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
 }

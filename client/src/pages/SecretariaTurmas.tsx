@@ -41,11 +41,13 @@ export default function SecretariaTurmas() {
                 <strong>Ano:</strong> {t.ano}
               </p>
               <p>
-                <strong>Professor:</strong> {t.professor?.name ?? "—"}
+                <strong>Professor:</strong> {t.professor?.name ?? t.professor?.email ?? "—"}
               </p>
               <p>
                 <strong>Disciplinas:</strong>{" "}
-                {Array.isArray(t.disciplinas) ? t.disciplinas.map((d: { nome: any; }) => d.nome).join(", ") : "—"}
+                {Array.isArray(t.disciplinas)
+                  ? t.disciplinas.map((d: { nome: string }) => d.nome).join(", ")
+                  : "—"}
               </p>
               <div className="mt-4">
                 <Button onClick={() => navigate(`/secretaria/turmas/${t._id}/alunos`)}>

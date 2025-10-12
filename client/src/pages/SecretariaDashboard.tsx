@@ -1,16 +1,11 @@
 // client/src/pages/SecretariaDashboard.tsx
+
 import { useEffect, useState } from "react";
-import { getDashboardGeral, getTaxasAprovacao } from "@/api/secretaria";
+import { getDashboardGeral, getTaxasAprovacao, DashboardGeralDTO as DashboardGeral } from "@/api/secretaria";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-type Dashboard = {
-  totalTurmas: number;
-  totalAlunos: number;
-  inativos: number;
-};
-
 export default function SecretariaDashboard() {
-  const [dash, setDash] = useState<Dashboard | null>(null);
+  const [dash, setDash] = useState<DashboardGeral | null>(null);
   const [taxas, setTaxas] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +15,6 @@ export default function SecretariaDashboard() {
       try {
         const d = await getDashboardGeral();
         setDash(d.data);
-
         const t = await getTaxasAprovacao();
         setTaxas(t.data?.turmas ?? {});
       } catch (err) {
@@ -33,6 +27,8 @@ export default function SecretariaDashboard() {
   }, []);
 
   if (loading) return <p className="p-6">Carregando painel...</p>;
+
+  const inativos = (dash?.transferidos ?? 0) + (dash?.desistentes ?? 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -59,10 +55,46 @@ export default function SecretariaDashboard() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Alunos Ativos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold text-green-600">{dash?.ativos ?? 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Alunos Transferidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold text-yellow-600">{dash?.transferidos ?? 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Alunos Desistentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold text-red-600">{dash?.desistentes ?? 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Nº de Abandonos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold text-rose-600">{dash?.abandonos ?? 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Alunos Inativos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-rose-600">{dash?.inativos ?? 0}</div>
+            <div className="text-3xl font-semibold text-rose-600">{inativos}</div>
           </CardContent>
         </Card>
       </div>
@@ -70,20 +102,44 @@ export default function SecretariaDashboard() {
       <section>
         <h2 className="text-lg font-semibold mt-6 mb-3">Taxas de Aprovação (por turma)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {Object.keys(taxas).length === 0 && <p>Sem dados de taxa por enquanto.</p>}
-          {Object.entries(taxas).map(([turma, info]) => (
-            <Card key={turma}>
-              <CardHeader>
-                <CardTitle>{turma}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>
-                  <strong>Aprovados:</strong> {info.aprovados}/{info.total} ({info.taxa})
-                </p>
-                <p className="text-sm text-slate-500">Reprovados: {info.reprovados}</p>
-              </CardContent>
-            </Card>
-          ))}
+          {!taxas || Object.keys(taxas).length === 0 ? (
+            <p>Sem dados de taxa por enquanto.</p>
+          ) : (
+            Object.entries(taxas).map(([turma, info]) => (
+              <Card key={turma}>
+                <CardHeader>
+                  <CardTitle>{turma}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>
+                    <strong>Aprovados:</strong> {info.aprovados}/{info.total} ({info.taxa})
+                  </p>
+                  <p className="text-sm text-slate-500">Reprovados: {info.reprovados}</p>
+
+                  {info.taxaBim1 && (
+                    <p className="text-sm mt-2">
+                      <strong>Taxa Bim1:</strong> {info.taxaBim1.toFixed(2)}%
+                    </p>
+                  )}
+                  {info.taxaBim2 && (
+                    <p className="text-sm">
+                      <strong>Taxa Bim2:</strong> {info.taxaBim2.toFixed(2)}%
+                    </p>
+                  )}
+                  {info.taxaBim3 && (
+                    <p className="text-sm">
+                      <strong>Taxa Bim3:</strong> {info.taxaBim3.toFixed(2)}%
+                    </p>
+                  )}
+                  {info.taxaBim4 && (
+                    <p className="text-sm">
+                      <strong>Taxa Bim4:</strong> {info.taxaBim4.toFixed(2)}%
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </section>
     </div>

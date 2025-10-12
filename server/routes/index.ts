@@ -1,30 +1,38 @@
 // server/routes/index.ts
 
-import express from 'express';
-// Não precisamos de Request, Response aqui, pois apenas configuramos o roteador
 
-import professorRoutes from './professorRoutes.js';
-import gradesRoutes from './gradesRoutes.js';
+import express from "express";
+
+// ✅ Importações ajustadas para o modo ESM + Node16
+// (mesmo que o arquivo-fonte seja .ts, o Node buscará o .js após a transpilação)
+import professorRoutes from "./professorRoutes.js";
+import gradesRoutes from "./gradesRoutes.js";
 import secretariaRoutes from "./secretariaRoutes.js";
+import relatorioRoutes from "./relatorioRoutes.js";
 
 const router = express.Router();
 
-// Root path response
-router.get("/", (req: express.Request, res: express.Response) => { // Corrigido: Use express.Response para 'res'
-  res.status(200).send("Welcome to Your Website!");
+// ==========================================================
+// 🌐 Rotas básicas de diagnóstico
+// ==========================================================
+router.get("/", (_req, res) => {
+  res.status(200).send("Welcome to AcademiaFlow API!");
 });
 
-router.get("/ping", (req: express.Request, res: express.Response) => { // Corrigido: Use express.Response para 'res'
+router.get("/ping", (_req, res) => {
   res.status(200).send("pong");
 });
 
 // ==========================================================
-// NOVAS ROTAS INTEGRADAS AQUI
-// As rotas nos arquivos professorRoutes.ts e gradesRoutes.ts já têm o prefixo /api
+// 🚀 Rotas principais da aplicação
 // ==========================================================
-router.use(professorRoutes);
-router.use(gradesRoutes);
-router.use(secretariaRoutes);
-// ==========================================================
+// ⚠️ Todas as rotas internas já possuem prefixos (/professor, /notas, /secretaria, etc.)
+router.use("/api", professorRoutes);
+router.use("/api", gradesRoutes);
+router.use("/api", secretariaRoutes);
+router.use("/api", relatorioRoutes);
 
+// ==========================================================
+// 🔚 Exportação padrão
+// ==========================================================
 export default router;

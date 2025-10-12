@@ -1,74 +1,94 @@
 // server/server.ts
-import dotenv from 'dotenv';
-import express from 'express';
-import { Request, Response, NextFunction } from 'express';
-import basicRoutes from './routes/index.js';
-import authRoutes from './routes/authRoutes.js';
-import { connectDB } from './config/database.js';
-import dbInit from './models/init.js';
-import cors from 'cors';
+
+import dotenv from "dotenv";
+import express, { Request, Response, NextFunction } from "express";
+import cors from "cors";
+import { fileURLToPath } from "url";
+
+// ✅ Imports com extensão .js (Node16 ESM)
+import basicRoutes from "./routes/index.js";
+import authRoutes from "./routes/authRoutes.js";
+import { connectDB } from "./config/database.js";
+import dbInit from "./models/init.js";
 
 // ==========================================================
-// TRATAMENTO DE ERROS GLOBAIS DO NODE.JS
-// Para capturar erros não tratados que podem ocorrer em qualquer lugar
-// no processo Node.js (não apenas dentro do Express).
+// TRATAMENTO GLOBAL DE ERROS NÃO CAPTURADOS
 // ==========================================================
-process.on('uncaughtException', (err: Error) => {
-  console.error('🚨 Uncaught Exception:', err.message);
+process.on("uncaughtException", (err: Error) => {
+  console.error("🚨 Uncaught Exception:", err.message);
   console.error(err.stack);
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-  console.error('🚨 Unhandled Rejection:', reason);
+process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
+  console.error("🚨 Unhandled Rejection:", reason);
   console.error(promise);
   process.exit(1);
 });
-// ==========================================================
 
+// ==========================================================
+// VARIÁVEIS DE AMBIENTE
+// ==========================================================
 dotenv.config();
 
 if (!process.env.DATABASE_URL) {
-  console.error("Error: DATABASE_URL environment variable is missing in .env file.");
+  console.error("❌ DATABASE_URL is missing in .env file.");
   process.exit(1);
 }
 
+// ==========================================================
+// EXPRESS APP
+// ==========================================================
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.enable('json spaces');
-app.enable('strict routing');
+app.enable("json spaces");
+app.enable("strict routing");
 
-app.use(cors({}));
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ==========================================================
+// ⬇️ MONTE AS ROTAS FORA DO startServer()
+// ==========================================================
+
+// 1️⃣ Rotas de autenticação (mantém /api/auth)
+app.use("/api/auth", authRoutes);
+
+// 2️⃣ Rotas principais (professor, secretaria, notas, relatórios).
+//    O roteador `index.ts` já prefixa cada subrota com /api.
+app.use("/", basicRoutes);
+
+// 404 - Rota não encontrada
+app.use((req: Request, res: Response) => {
+  res.status(404).json({ error: "Page not found" });
+});
+
+// 500 - Erro interno
+app.use(
+  (err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    console.error(`💥 Application error: ${err.message}`);
+    console.error(err.stack);
+    res.status(500).json({ error: "Internal server error" });
+  }
+);
+
+// ==========================================================
+// FUNÇÃO PARA INICIAR O SERVIDOR (conexão DB + listen)
+// ==========================================================
 const startServer = async () => {
   try {
     await connectDB();
     await dbInit();
 
-    console.log('✅ MongoDB connected successfully!');
-
-    // ==========================================================
-    // CONFIGURAÇÃO DAS ROTAS
-    // ==========================================================
-    // Rotas de autenticação (mantidas com o prefixo /api/auth)
-    app.use('/api/auth', authRoutes);
-
-    // Rotas básicas (incluindo as novas de professor e notas via index.ts)
-    app.use(basicRoutes);
-    // ==========================================================
-
-    app.use((req: Request, res: Response) => {
-      res.status(404).send("Page not found.");
-    });
-
-    app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-      console.error(`Unhandled application error: ${err.message}`);
-      console.error(err.stack);
-      res.status(500).send("There was an error serving your request.");
-    });
+    console.log("✅ MongoDB connected and models initialized successfully!");
 
     app.listen(port, () => {
       console.log(`🚀 Server running at http://localhost:${port}`);
@@ -80,4 +100,13 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// ==========================================================
+// SÓ INICIA SE EXECUTADO DIRETAMENTE
+// ==========================================================
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename) {
+  // Executado via `npx tsx server.ts`
+  startServer();
+}
+
+export { app, startServer };
