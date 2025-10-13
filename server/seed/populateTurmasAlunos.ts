@@ -1,16 +1,15 @@
 // server/seed/populateTurmasAlunos.ts
-
 import mongoose, { Types } from "mongoose";
 import fs from "node:fs";
 import path from "node:path";
 
-// ⚠️ Importações com extensão .js (necessário em ESM)
-import { Aluno } from "../models/Aluno.js";
-import { Turma } from "../models/Turma.js";
-import { Disciplina } from "../models/Disciplina.js";
+// ⚙️ Importações corrigidas — todas com export default
+import Aluno from "../models/Aluno.js";
+import Turma from "../models/Turma.js";
+import Disciplina from "../models/Disciplina.ts";
 import { Nota } from "../models/Nota.js";
 import User from "../models/User.js";
-import { IDisciplina } from "../models/Disciplina.js"; // para tipagem explícita
+import { IDisciplina } from "../models/Disciplina.ts"; // apenas para tipagem
 
 // 🧩 Helper para garantir tipo ObjectId
 const toObjectId = (id: any): Types.ObjectId => {
@@ -23,7 +22,8 @@ async function run() {
     console.log("🚀 Iniciando seed de turmas e alunos...\n");
 
     // 🔹 Conexão com MongoDB
-    const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/academia_flow_db";
+    const MONGO_URI =
+      process.env.MONGO_URI || "mongodb://localhost:27017/academia_flow_db";
     await mongoose.connect(MONGO_URI);
     console.log("✅ Conectado ao MongoDB");
 
@@ -48,15 +48,17 @@ async function run() {
     if (!disciplinaDoc) {
       disciplinaDoc = await Disciplina.create({
         nome: "Física",
-        descricao: "Disciplina de fallback criada automaticamente.",
+        codigo: "FIS-101",
+        professor: toObjectId(professor._id),
+        turma: null,
         cargaHoraria: 60,
+        ativo: true,
       });
       console.log("⚠️ Disciplina 'Física' não encontrada — criada automaticamente.");
     } else {
       console.log(`📘 Disciplina encontrada: ${disciplinaDoc.nome}`);
     }
 
-    // Força tipagem correta (resolve o erro de "unknown")
     const disciplinaId: Types.ObjectId = toObjectId(disciplinaDoc._id);
 
     // 🔹 Iterar sobre turmas
@@ -88,7 +90,7 @@ async function run() {
 
       // Inserir alunos
       for (const aluno of alunos) {
-        // Limpar nome_turma removendo caracteres não permitidos (apenas letras, números e traços)
+        // Normalizar nome_turma (sem espaços e caracteres especiais)
         const cleanedNomeTurma = nome_turma.replace(/[^A-Za-z0-9-]/g, "").toUpperCase();
         const matricula = `${cleanedNomeTurma}-${aluno.numero}`;
         const email = `${aluno.nome.toLowerCase().replace(/\s+/g, ".")}@escola.com`;
@@ -100,6 +102,7 @@ async function run() {
             matricula,
             email,
             turma: turma._id,
+            ativo: true,
           });
           console.log(`👩‍🎓 Novo aluno inserido: ${aluno.nome}`);
         }
