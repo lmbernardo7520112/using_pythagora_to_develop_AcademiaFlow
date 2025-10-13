@@ -51,8 +51,9 @@ export interface TaxasAprovacaoDTO {
 /**
  * Dashboard geral
  */
-export const getDashboardGeral = async (): Promise<AxiosResponse<DashboardGeralDTO>> =>
-  api.get("/secretaria/dashboard");
+export const getDashboardGeral = async (): Promise<
+  AxiosResponse<DashboardGeralDTO>
+> => api.get("/secretaria/dashboard");
 
 /**
  * Turmas
@@ -60,24 +61,39 @@ export const getDashboardGeral = async (): Promise<AxiosResponse<DashboardGeralD
 export const getTurmas = async (): Promise<AxiosResponse<TurmaDTO[]>> =>
   api.get("/secretaria/turmas");
 
-export const getTurmaById = async (id: string): Promise<AxiosResponse<TurmaDTO>> =>
-  api.get(`/secretaria/turmas/${id}`);
+export const getTurmaById = async (
+  id: string
+): Promise<AxiosResponse<TurmaDTO>> => api.get(`/secretaria/turmas/${id}`);
 
 /**
  * Alunos
  */
-export const getAlunosByTurma = async (turmaId: string): Promise<AxiosResponse<AlunoDTO[]>> =>
+export const getAlunosByTurma = async (
+  turmaId: string
+): Promise<AxiosResponse<AlunoDTO[]>> =>
   api.get(`/secretaria/turmas/${turmaId}/alunos`);
+
+/**
+ * Atualizar status de aluno
+ */
+export const updateAlunoStatus = async (
+  alunoId: string,
+  payload: { ativo?: boolean; transferido?: boolean; desistente?: boolean }
+): Promise<AxiosResponse<AlunoDTO>> =>
+  api.put(`/secretaria/alunos/${alunoId}`, payload);
 
 /**
  * Taxas de aprovação
  */
-export const getTaxasAprovacao = async (bimestre?: number): Promise<AxiosResponse<TaxasAprovacaoDTO>> =>
-  api.get("/secretaria/taxas-aprovacao", { params: bimestre ? { bimestre } : {} });
+export const getTaxasAprovacao = async (
+  bimestre?: number
+): Promise<AxiosResponse<TaxasAprovacaoDTO>> =>
+  api.get("/secretaria/taxas-aprovacao", {
+    params: bimestre ? { bimestre } : {},
+  });
 
 /**
- * 📊 Relatórios gerais da secretaria (novo endpoint do Lote F)
- * Inclui dados agregados: médias, taxas, desempenho por turma etc.
+ * 📊 Relatórios gerais da secretaria
  */
 export interface RelatorioDTO {
   totalTurmas: number;
@@ -87,5 +103,6 @@ export interface RelatorioDTO {
   desempenhoPorTurma: { turma: string; media: number }[];
 }
 
-export const getRelatorios = async (): Promise<AxiosResponse<RelatorioDTO>> =>
-  api.get("/secretaria/relatorios");
+export const getRelatorios = async (): Promise<
+  AxiosResponse<RelatorioDTO>
+> => api.get("/secretaria/relatorios");

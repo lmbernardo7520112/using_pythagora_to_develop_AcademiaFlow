@@ -1,6 +1,5 @@
 // server/services/secretariaService.ts
 
-// server/services/secretariaService.ts
 import mongoose from "mongoose";
 import Turma from "../models/Turma.js";
 import Aluno from "../models/Aluno.js";
@@ -84,7 +83,7 @@ const secretariaService = {
       turma.ativo = false;
       await turma.save();
 
-      // desativa alunos vinculados
+      // Desativa alunos vinculados
       await Aluno.updateMany({ turma: id }, { ativo: false });
     } catch (error) {
       console.error("secretariaService.disableTurma:", error);
@@ -116,11 +115,9 @@ const secretariaService = {
       const exists = await Aluno.findOne({
         $or: [{ matricula: data.matricula }, { email: data.email }],
       });
-
       if (exists) throw new Error("Matrícula ou e-mail já cadastrados");
 
       const novo = await Aluno.create({ ...data, turma: turma._id, ativo: true });
-
       turma.alunos.push(novo._id as mongoose.Types.ObjectId);
       await turma.save();
 
@@ -163,15 +160,17 @@ const secretariaService = {
       const totalTurmas = await Turma.countDocuments({ ativo: true });
       const totalAlunos = await Aluno.countDocuments();
 
-      // Contagem real de ativos e inativos
+      // Contagens detalhadas
       const ativos = await Aluno.countDocuments({ ativo: true });
-      const inativos = await Aluno.countDocuments({ ativo: false });
+      const transferidos = await Aluno.countDocuments({ transferido: true });
+      const desistentes = await Aluno.countDocuments({ desistente: true });
 
-      // Como o modelo atual não possui status específicos,
-      // os campos abaixo permanecem zerados, para manter compatibilidade com o frontend.
-      const transferidos = 0;
-      const desistentes = 0;
-      const abandonos = inativos; // alunos inativos considerados abandonos por ora
+      // Abandonos = inativos que não são transferidos nem desistentes
+      const abandonos = await Aluno.countDocuments({
+        ativo: false,
+        transferido: { $ne: true },
+        desistente: { $ne: true },
+      });
 
       return {
         totalTurmas,

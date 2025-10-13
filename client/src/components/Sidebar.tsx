@@ -1,22 +1,20 @@
 // client/src/components/Sidebar.tsx
 
-// client/src/components/Sidebar.tsx
-
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
 import {
   LogOut,
   LayoutDashboard,
-  Users,
-  BookOpen,
   GraduationCap,
+  BookOpen,
   BarChart3,
 } from "lucide-react";
 
 /**
  * 🎯 Sidebar com menus dinâmicos por perfil (professor / secretaria)
- * Agora inclui acesso aos Relatórios no painel da secretaria.
+ * 🔒 Versão segura — sem rota “Alunos” isolada.
+ * A listagem de alunos agora é acessada exclusivamente via "Turmas".
  */
 export function Sidebar() {
   const { currentUser, logout } = useAuth();
@@ -24,7 +22,7 @@ export function Sidebar() {
 
   const role = currentUser?.role ?? "guest";
 
-  // 🔹 Define os itens do menu de acordo com o role
+  // 🔹 Define os itens do menu conforme o papel do usuário
   const menuItems =
     role === "professor"
       ? [
@@ -35,8 +33,7 @@ export function Sidebar() {
       ? [
           { label: "Dashboard", path: "/secretaria", icon: LayoutDashboard },
           { label: "Turmas", path: "/secretaria/turmas", icon: GraduationCap },
-          { label: "Alunos", path: "/secretaria/alunos", icon: Users },
-          { label: "Relatórios", path: "/secretaria/relatorios", icon: BarChart3 }, // ✅ Novo item
+          { label: "Relatórios", path: "/secretaria/relatorios", icon: BarChart3 },
         ]
       : [];
 
