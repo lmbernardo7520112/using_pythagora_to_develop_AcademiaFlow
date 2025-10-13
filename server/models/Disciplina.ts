@@ -5,8 +5,8 @@ import mongoose, { Schema, Document, Types, Model } from "mongoose";
 export interface IDisciplina extends Document {
   nome: string;
   codigo: string;
-  professor: Types.ObjectId; // ref: 'User'
-  turma: Types.ObjectId;     // ref: 'Turma'
+  professor?: Types.ObjectId | null; // pode ser null
+  turma?: Types.ObjectId | null;     // pode ser null
   cargaHoraria: number;
   ativo: boolean;
   criadoEm: Date;
@@ -31,13 +31,15 @@ const DisciplinaSchema = new Schema<IDisciplina>(
     professor: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "Professor responsável é obrigatório"],
+      required: false, // ✅ antes era true
+      default: null,
       index: true,
     },
     turma: {
       type: Schema.Types.ObjectId,
       ref: "Turma",
-      required: [true, "Turma vinculada é obrigatória"],
+      required: false, // ✅ antes era true
+      default: null,
       index: true,
     },
     cargaHoraria: {
@@ -78,6 +80,11 @@ const DisciplinaSchema = new Schema<IDisciplina>(
     },
   }
 );
+
+// Índices úteis
+DisciplinaSchema.index({ nome: 1 });
+DisciplinaSchema.index({ codigo: 1 }, { unique: true });
+DisciplinaSchema.index({ ativo: 1 });
 
 const Disciplina: Model<IDisciplina> =
   mongoose.models.Disciplina ||
