@@ -135,6 +135,43 @@ router.delete("/secretaria/alunos/:id", requireSecretaria, async (req: Request, 
 });
 
 // ==========================================================
+// 📚 DISCIPLINAS — novas rotas
+// ==========================================================
+router.get("/secretaria/disciplinas", requireSecretaria, async (_req: Request, res: Response) => {
+  try {
+    const disciplinas = await secretariaService.listDisciplinas();
+    return res.status(200).json(disciplinas);
+  } catch (err) {
+    console.error("❌ secretariaRoutes.listDisciplinas:", err);
+    return res.status(500).json({ message: "Erro ao listar disciplinas" });
+  }
+});
+
+router.put("/secretaria/disciplinas/:disciplinaId/assign", requireSecretaria, async (req: Request, res: Response) => {
+  try {
+    const { disciplinaId } = req.params;
+    const { professorId } = req.body;
+    const disciplina = await secretariaService.assignProfessorToDisciplina(disciplinaId, professorId);
+    return res.status(200).json(disciplina);
+  } catch (err) {
+    console.error("❌ secretariaRoutes.assignProfessorToDisciplina:", err);
+    return res.status(500).json({ message: "Erro ao atribuir professor à disciplina" });
+  }
+});
+
+router.put("/secretaria/turmas/:turmaId/alunos/manage", requireSecretaria, async (req: Request, res: Response) => {
+  try {
+    const { turmaId } = req.params;
+    const { alunosIds } = req.body;
+    const turma = await secretariaService.updateAlunosInTurma(turmaId, alunosIds);
+    return res.status(200).json(turma);
+  } catch (err) {
+    console.error("❌ secretariaRoutes.updateAlunosInTurma:", err);
+    return res.status(500).json({ message: "Erro ao atualizar alunos na turma" });
+  }
+});
+
+// ==========================================================
 // 📈 TAXAS DE APROVAÇÃO
 // ==========================================================
 router.get("/secretaria/taxas-aprovacao", requireSecretaria, async (req: Request, res: Response) => {
