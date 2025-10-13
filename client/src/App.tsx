@@ -12,16 +12,14 @@ import { BlankPage } from "./pages/BlankPage";
 import { ProfessorDashboard } from "./pages/ProfessorDashboard";
 import { GradeManagement } from "./pages/GradeManagement";
 
-// ✅ Novos imports para os fluxos da Secretaria
+// ✅ Fluxos da Secretaria
 import SecretariaDashboard from "./pages/SecretariaDashboard";
 import SecretariaTurmas from "./pages/SecretariaTurmas";
 import SecretariaAlunos from "./pages/SecretariaAlunos";
 import SecretariaRelatorios from "./pages/SecretariaRelatorios";
 
-// ✅ Novo componente de redirecionamento por role
+// ✅ Redirecionamento e acesso negado
 import { RoleRedirect } from "./components/RoleRedirect";
-
-// ✅ Página de acesso negado
 import { Unauthorized } from "./pages/Unauthorized";
 
 function App() {
@@ -53,7 +51,9 @@ function App() {
                 </ProtectedRoute>
               }
             >
+              {/* Dashboard principal */}
               <Route index element={<ProfessorDashboard />} />
+              {/* Gerenciamento de notas */}
               <Route
                 path="grades/:turmaId/:disciplinaId"
                 element={<GradeManagement />}
@@ -69,23 +69,13 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              {/* Painel principal */}
               <Route index element={<SecretariaDashboard />} />
-
-              {/* Lista de turmas */}
               <Route path="turmas" element={<SecretariaTurmas />} />
-
-              {/* Alunos de uma turma específica */}
-              <Route
-                path="turmas/:turmaId/alunos"
-                element={<SecretariaAlunos />}
-              />
-
-              {/* Relatórios acadêmicos */}
+              <Route path="turmas/:turmaId/alunos" element={<SecretariaAlunos />} />
               <Route path="relatorios" element={<SecretariaRelatorios />} />
             </Route>
 
-            {/* 🔹 Página de acesso não autorizado */}
+            {/* 🔹 Página de acesso negado */}
             <Route path="/unauthorized" element={<Unauthorized />} />
 
             {/* 🔹 Página genérica (404) */}
