@@ -2,7 +2,7 @@
 
 import mongoose from 'mongoose';
 import { Nota, INotaLean } from '../models/Nota.js';
-import { Aluno } from '../models/Aluno.js';
+import Aluno from '../models/Aluno.js';
 
 /**
  * 🔹 Busca todas as notas de uma turma + disciplina

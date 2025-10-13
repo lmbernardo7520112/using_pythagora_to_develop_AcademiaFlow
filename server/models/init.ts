@@ -1,53 +1,35 @@
 // server/models/init.ts
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-
-// Importa os modelos para registrar as coleções no Mongoose
-import './User';
-import './Turma';
-import './Aluno';
-import './Disciplina';
-import './Nota';
-
-dotenv.config();
+import Aluno from "./Aluno.js";
+import Turma from "./Turma.js";
+import Disciplina from "./Disciplina.ts"; // ✅ Adicionado
 
 /**
- * Inicializa o banco de dados e registra todos os modelos Mongoose.
- * Essa função garante que a conexão e os modelos estejam prontos
- * antes que o restante da aplicação (rotas, serviços, etc.) seja carregado.
+ * Inicialização do modelo e pequenas migrações idempotentes.
+ * - Garante que todos os alunos tenham os campos transferido/desistente
+ * - Normaliza combinações de status para consistência com os cards
  */
-const dbInit = async (options: Record<string, unknown> = {}): Promise<void> => {
-  const mongoUrl = process.env.DATABASE_URL || 'mongodb://localhost:27017/academia_flow_db?replicaSet=rs0';
+export default async function dbInit() {
+  // 1) Garantir flags com valores padrão em docs antigos
+  await Aluno.updateMany(
+    { transferido: { $exists: false } },
+    { $set: { transferido: false } }
+  );
 
-  try {
-    // Garante que a conexão ocorra apenas se ainda não estiver conectada
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUrl, options);
-      console.log(`✅ Connected to MongoDB at ${mongoUrl}`);
-    } else {
-      console.log('ℹ️ Mongoose connection already established, skipping reconnect.');
-    }
+  await Aluno.updateMany(
+    { desistente: { $exists: false } },
+    { $set: { desistente: false } }
+  );
 
-    console.log('✅ Modelos Mongoose inicializados: User, Turma, Aluno, Disciplina, Nota');
+  // 2) Regras de normalização consistentes
+  // 2.1) Se transferido = true OU desistente = true => ativo deve ser false
+  await Aluno.updateMany(
+    { $or: [{ transferido: true }, { desistente: true }], ativo: { $ne: false } },
+    { $set: { ativo: false } }
+  );
 
-    // Monitora eventos da conexão para depuração e estabilidade
-    mongoose.connection.on('error', (err: Error) => {
-      console.error(`❌ MongoDB connection error: ${err.message}`);
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️ MongoDB disconnected. Attempting to reconnect...');
-    });
-
-    mongoose.connection.on('reconnected', () => {
-      console.info('🔁 MongoDB reconnected successfully');
-    });
-
-  } catch (err) {
-    console.error(`❌ Error connecting to database ${mongoUrl}:`, err);
-    throw err;
-  }
-};
-
-export default dbInit;
-
+  // 2.2) Se ativo = true => transferido e desistente devem ser false
+  await Aluno.updateMany(
+    { ativo: true, $or: [{ transferido: true }, { desistente: true }] },
+    { $set: { transferido: false, desistente: false } }
+  );
+}

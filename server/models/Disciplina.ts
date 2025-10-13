@@ -1,6 +1,6 @@
 //server/models/Disciplinas.ts
 
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Document, Types, Model } from "mongoose";
 
 export interface IDisciplina extends Document {
   nome: string;
@@ -17,35 +17,35 @@ const DisciplinaSchema = new Schema<IDisciplina>(
   {
     nome: {
       type: String,
-      required: [true, 'Nome da discipline é obrigatório'],
+      required: [true, "Nome da disciplina é obrigatório"],
       trim: true,
-      maxlength: [100, 'Nome da discipline não pode exceder 100 caracteres'],
+      maxlength: [100, "Nome da disciplina não pode exceder 100 caracteres"],
     },
     codigo: {
       type: String,
-      required: [true, 'Código da discipline é obrigatório'],
+      required: [true, "Código da disciplina é obrigatório"],
       unique: true,
       uppercase: true,
-      match: [/^[A-Z0-9_-]+$/, 'Código deve conter apenas letras, números e traços'],
+      match: [/^[A-Z0-9_-]+$/, "Código deve conter apenas letras, números e traços"],
     },
     professor: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Professor responsável é obrigatório'],
+      ref: "User",
+      required: [true, "Professor responsável é obrigatório"],
       index: true,
     },
     turma: {
       type: Schema.Types.ObjectId,
-      ref: 'Turma',
-      required: [true, 'Turma vinculada é obrigatória'],
+      ref: "Turma",
+      required: [true, "Turma vinculada é obrigatória"],
       index: true,
     },
     cargaHoraria: {
       type: Number,
       required: true,
       default: 60,
-      min: [10, 'Carga horária mínima é 10h'],
-      max: [400, 'Carga horária máxima é 400h'],
+      min: [10, "Carga horária mínima é 10h"],
+      max: [400, "Carga horária máxima é 400h"],
     },
     ativo: {
       type: Boolean,
@@ -65,8 +65,8 @@ const DisciplinaSchema = new Schema<IDisciplina>(
   {
     versionKey: false,
     timestamps: {
-      createdAt: 'criadoEm',
-      updatedAt: 'atualizadoEm',
+      createdAt: "criadoEm",
+      updatedAt: "atualizadoEm",
     },
     toJSON: {
       virtuals: true,
@@ -79,10 +79,9 @@ const DisciplinaSchema = new Schema<IDisciplina>(
   }
 );
 
-// Removidas as linhas de índices duplicados
-
-// Modelo
-const Disciplina = mongoose.model<IDisciplina>('Disciplina', DisciplinaSchema);
+const Disciplina: Model<IDisciplina> =
+  mongoose.models.Disciplina ||
+  mongoose.model<IDisciplina>("Disciplina", DisciplinaSchema);
 
 export default Disciplina;
 export { Disciplina };

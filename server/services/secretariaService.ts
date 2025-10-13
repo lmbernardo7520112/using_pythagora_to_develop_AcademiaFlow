@@ -1,36 +1,88 @@
 // server/services/secretariaService.ts
 
+
 import mongoose from "mongoose";
 import Turma from "../models/Turma.js";
 import Aluno from "../models/Aluno.js";
 import { getGradesByTurmaAndDisciplina } from "./gradeService.js";
 
 /**
- * Secretaria service — usa apenas modelos existentes e funções nomeadas do gradeService.
- * Todas as operações são aditivas (não modificam schemas existentes).
+ * Normaliza o payload de status para manter exclusividade e coerência:
+ * - Se transferido = true => desistente = false, ativo = false
+ * - Se desistente = true  => transferido = false, ativo = false
+ * - Se ativo = true        => transferido = false, desistente = false
+ * - Se nada explícito, mantém valores atuais do doc (quando possível)
  */
+function normalizeAlunoStatus(
+  current: any,
+  patch: Partial<{ ativo: boolean; transferido: boolean; desistente: boolean }>
+) {
+  const out = {
+    ativo: current?.ativo ?? true,
+    transferido: current?.transferido ?? false,
+    desistente: current?.desistente ?? false,
+  };
+
+  // aplica alterações do patch
+  if (typeof patch.ativo === "boolean") out.ativo = patch.ativo;
+  if (typeof patch.transferido === "boolean") out.transferido = patch.transferido;
+  if (typeof patch.desistente === "boolean") out.desistente = patch.desistente;
+
+  // Regras de exclusividade e coerência
+  if (out.transferido) {
+    out.desistente = false;
+    out.ativo = false;
+  } else if (out.desistente) {
+    out.transferido = false;
+    out.ativo = false;
+  } else if (out.ativo) {
+    out.transferido = false;
+    out.desistente = false;
+  } else {
+    // inativo sem flag => “abandono” (não mexe nas flags para permitir dashboard contabilizar corretamente)
+  }
+
+  return out;
+}
+
 const secretariaService = {
   // -------------------- TURMAS --------------------
   async listTurmas() {
     try {
-      return await Turma.find({ ativo: true })
+      const turmas = await Turma.find()
         .populate("professor", "name email role")
         .populate("disciplinas", "nome")
         .lean();
+
+      if (!turmas || turmas.length === 0) return [];
+
+      // Sanitiza o payload para o front não quebrar se algo vier incompleto
+      return turmas.map((t: any) => ({
+        _id: t._id,
+        nome: t.nome ?? "(Sem nome)",
+        ano: t.ano ?? new Date().getFullYear(),
+        professor: t.professor ?? null,
+        disciplinas: Array.isArray(t.disciplinas) ? t.disciplinas : [],
+        alunos: Array.isArray(t.alunos) ? t.alunos : [],
+        ativo: t.ativo !== false, // default para true quando indefinido
+      }));
     } catch (error) {
-      console.error("secretariaService.listTurmas:", error);
-      throw new Error("Erro ao listar turmas");
+      console.error("❌ secretariaService.listTurmas:", error);
+      // Preferimos retornar [] para o front seguir renderizando
+      return [];
     }
   },
 
   async getTurmaById(id: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
-      return await Turma.findById(id)
+      const turma = await Turma.findById(id)
         .populate("professor", "name email")
         .populate("disciplinas", "nome")
-        .populate("alunos", "nome matricula email ativo")
+        .populate("alunos", "nome matricula email ativo transferido desistente")
         .lean();
+
+      return turma ?? null;
     } catch (error) {
       console.error("secretariaService.getTurmaById:", error);
       throw new Error("Erro ao obter turma");
@@ -84,7 +136,7 @@ const secretariaService = {
       await turma.save();
 
       // Desativa alunos vinculados
-      await Aluno.updateMany({ turma: id }, { ativo: false });
+      await Aluno.updateMany({ turma: id }, { $set: { ativo: false } }, { strict: false });
     } catch (error) {
       console.error("secretariaService.disableTurma:", error);
       throw new Error("Erro ao desativar turma");
@@ -95,7 +147,10 @@ const secretariaService = {
   async listAlunosByTurma(turmaId: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(turmaId)) throw new Error("ID inválido");
-      return await Aluno.find({ turma: turmaId }).sort({ nome: 1 }).lean();
+      return await Aluno.find({ turma: turmaId })
+        .select("nome matricula email ativo transferido desistente turma")
+        .sort({ nome: 1 })
+        .lean();
     } catch (error) {
       console.error("secretariaService.listAlunosByTurma:", error);
       throw new Error("Erro ao listar alunos");
@@ -117,7 +172,14 @@ const secretariaService = {
       });
       if (exists) throw new Error("Matrícula ou e-mail já cadastrados");
 
-      const novo = await Aluno.create({ ...data, turma: turma._id, ativo: true });
+      const novo = await Aluno.create({
+        ...data,
+        turma: turma._id,
+        ativo: true,
+        transferido: false,
+        desistente: false,
+      });
+
       turma.alunos.push(novo._id as mongoose.Types.ObjectId);
       await turma.save();
 
@@ -131,8 +193,38 @@ const secretariaService = {
   async updateAluno(id: string, data: any) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
-      const updated = await Aluno.findByIdAndUpdate(id, data, { new: true });
-      if (!updated) throw new Error("Aluno não encontrado");
+
+      const current = await Aluno.findById(id).lean();
+      if (!current) throw new Error("Aluno não encontrado");
+
+      // Normaliza o payload (garante exclusividade e coerência com cards)
+      const normalized = normalizeAlunoStatus(current, {
+        ativo: data.ativo,
+        transferido: data.transferido,
+        desistente: data.desistente,
+      });
+
+      // Importante: strict:false aqui permite persistir campos mesmo que o schema ainda não tenha as props
+      await Aluno.updateOne(
+        { _id: id },
+        {
+          $set: {
+            ativo: normalized.ativo,
+            transferido: normalized.transferido,
+            desistente: normalized.desistente,
+            ...(data.nome ? { nome: data.nome } : {}),
+            ...(data.email ? { email: data.email } : {}),
+          },
+        },
+        { strict: false, runValidators: false }
+      );
+
+      // Retorna o documento atualizado já com os campos
+      const updated = await Aluno.findById(id)
+        .select("nome matricula email ativo transferido desistente turma")
+        .lean();
+
+      if (!updated) throw new Error("Aluno não encontrado após atualização");
       return updated;
     } catch (error) {
       console.error("secretariaService.updateAluno:", error);
@@ -143,10 +235,12 @@ const secretariaService = {
   async disableAluno(id: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
-      const aluno = await Aluno.findById(id);
-      if (!aluno) throw new Error("Aluno não encontrado");
-      aluno.ativo = false;
-      await aluno.save();
+      // marca como inativo; não mexemos nas flags para não mascarar “abandono”
+      await Aluno.updateOne({ _id: id }, { $set: { ativo: false } }, { strict: false });
+      const updated = await Aluno.findById(id)
+        .select("nome matricula email ativo transferido desistente turma")
+        .lean();
+      return updated;
     } catch (error) {
       console.error("secretariaService.disableAluno:", error);
       throw new Error("Erro ao desativar aluno");
@@ -156,16 +250,14 @@ const secretariaService = {
   // -------------------- DASHBOARD / TAXAS --------------------
   async getDashboardGeral() {
     try {
-      // Contagens básicas
       const totalTurmas = await Turma.countDocuments({ ativo: true });
       const totalAlunos = await Aluno.countDocuments();
 
-      // Contagens detalhadas
       const ativos = await Aluno.countDocuments({ ativo: true });
       const transferidos = await Aluno.countDocuments({ transferido: true });
       const desistentes = await Aluno.countDocuments({ desistente: true });
 
-      // Abandonos = inativos que não são transferidos nem desistentes
+      // “Abandono” = inativo sem outra flag
       const abandonos = await Aluno.countDocuments({
         ativo: false,
         transferido: { $ne: true },
@@ -189,12 +281,18 @@ const secretariaService = {
   async getDashboardTurma(turmaId: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(turmaId)) throw new Error("ID inválido");
-      const turma = await Turma.findById(turmaId).populate("alunos").lean();
+      const turma = await Turma.findById(turmaId)
+        .populate("alunos", "ativo transferido desistente")
+        .lean();
       if (!turma) throw new Error("Turma não encontrada");
-      const total = turma.alunos?.length || 0;
-      const ativos = turma.alunos?.filter((a: any) => a.ativo).length || 0;
-      const inativos = total - ativos;
-      return { turma: turma.nome, total, ativos, inativos };
+
+      const total = (turma.alunos as any[])?.length || 0;
+      const ativos = (turma.alunos as any[])?.filter((a: any) => a.ativo === true).length || 0;
+      const transferidos = (turma.alunos as any[])?.filter((a: any) => a.transferido === true).length || 0;
+      const desistentes = (turma.alunos as any[])?.filter((a: any) => a.desistente === true).length || 0;
+      const abandonos = total - (ativos + transferidos + desistentes);
+
+      return { turma: (turma as any).nome, total, ativos, transferidos, desistentes, abandonos };
     } catch (error) {
       console.error("secretariaService.getDashboardTurma:", error);
       throw new Error("Erro ao gerar dashboard da turma");
