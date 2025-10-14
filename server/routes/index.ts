@@ -1,6 +1,8 @@
 // server/routes/index.ts
 
 
+// server/routes/index.ts
+
 import express from "express";
 
 // ✅ Importações ajustadas para o modo ESM + Node16
@@ -9,6 +11,7 @@ import professorRoutes from "./professorRoutes.js";
 import gradesRoutes from "./gradesRoutes.js";
 import secretariaRoutes from "./secretariaRoutes.js";
 import relatorioRoutes from "./relatorioRoutes.js";
+import authRoutes from "./authRoutes.js";
 
 const router = express.Router();
 
@@ -31,6 +34,7 @@ router.use("/api", professorRoutes);
 router.use("/api", gradesRoutes);
 router.use("/api", secretariaRoutes);
 router.use("/api", relatorioRoutes);
+router.use("/api", authRoutes);
 
 // ==========================================================
 // 🔚 Exportação padrão

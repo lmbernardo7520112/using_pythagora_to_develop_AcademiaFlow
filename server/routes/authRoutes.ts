@@ -1,46 +1,52 @@
 //server/routes/authRoutes.ts
-import express from 'express';
-import { Request, Response } from 'express';
-import UserService from '../services/userService.js';
-import { requireUser } from './middlewares/auth.js';
-import User from '../models/User.js';
-import { generateAccessToken, generateRefreshToken } from '../utils/auth.js';
-import jwt from 'jsonwebtoken';
-import { ALL_ROLES } from 'shared';
+import express, { Request, Response } from "express";
+import UserService from "../services/userService.js";
+import { requireUser } from "./middlewares/auth.js";
+import User, { IUser } from "../models/User.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/auth.js";
+import jwt from "jsonwebtoken";
+import { ALL_ROLES } from "shared";
 
 const router = express.Router();
 
-interface AuthRequest extends Request {
-  user?: Record<string, unknown>;
+/**
+ * Extensão segura de Request para incluir o campo `user` do tipo IUser
+ */
+interface AuthenticatedRequest extends Request {
+  user?: IUser;
 }
 
-router.post('/login', async (req: Request, res: Response) => {
+// ==========================================================
+// 🔑 LOGIN
+// ==========================================================
+router.post("/login", async (req: Request, res: Response) => {
   const sendError = (msg: string) => res.status(400).json({ message: msg });
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return sendError('Email and password are required');
+    return sendError("Email and password are required");
   }
 
   const user = await UserService.authenticateWithPassword(email, password);
 
-  if (user) {
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-
-    user.refreshToken = refreshToken;
-    await user.save();
-    return res.json({...user.toObject(), accessToken, refreshToken});
-  } else {
-    return sendError('Email or password is incorrect');
-
+  if (!user) {
+    return sendError("Email or password is incorrect");
   }
+
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  // Atualiza o refresh token com tipo seguro
+  user.refreshToken = refreshToken ?? "";
+  await user.save();
+
+  return res.json({ ...user.toObject(), accessToken, refreshToken });
 });
 
-router.post('/register', async (req: AuthRequest, res: Response) => {
-  if (req.user) {
-    return res.json({ user: req.user });
-  }
+// ==========================================================
+// 🧾 REGISTRO
+// ==========================================================
+router.post("/register", async (req: Request, res: Response) => {
   try {
     const user = await UserService.create(req.body);
     return res.status(200).json(user);
@@ -50,88 +56,130 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/logout', async (req: Request, res: Response) => {
+// ==========================================================
+// 🚪 LOGOUT
+// ==========================================================
+router.post("/logout", async (req: Request, res: Response) => {
   const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: "Email is required for logout" });
+  }
 
   const user = await User.findOne({ email });
   if (user) {
-    user.refreshToken = null;
+    user.refreshToken = ""; // garante compatibilidade com IUser
     await user.save();
   }
 
-  res.status(200).json({ message: 'User logged out successfully.' });
+  res.status(200).json({ message: "User logged out successfully." });
 });
 
-router.post('/refresh', async (req: Request, res: Response) => {
+// ==========================================================
+// 🔁 REFRESH TOKEN
+// ==========================================================
+router.post("/refresh", async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
     return res.status(401).json({
       success: false,
-      message: 'Refresh token is required'
+      message: "Refresh token is required",
     });
   }
 
   try {
-    // Verify the refresh token
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as jwt.JwtPayload;
+    if (!process.env.REFRESH_TOKEN_SECRET) {
+      throw new Error("REFRESH_TOKEN_SECRET not defined");
+    }
 
-    // Find the user
-    const user = await UserService.get(decoded.sub);
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    ) as jwt.JwtPayload;
 
+    const userId = decoded.sub as string;
+    if (!userId) {
+      return res.status(403).json({ success: false, message: "Invalid token payload" });
+    }
+
+    const user = await UserService.get(userId);
     if (!user) {
-      return res.status(403).json({
-        success: false,
-        message: 'User not found'
-      });
+      return res.status(403).json({ success: false, message: "User not found" });
     }
 
     if (user.refreshToken !== refreshToken) {
       return res.status(403).json({
         success: false,
-        message: 'Invalid refresh token'
+        message: "Invalid refresh token",
       });
     }
 
-    // Generate new tokens
     const newAccessToken = generateAccessToken(user);
     const newRefreshToken = generateRefreshToken(user);
 
-    // Update user's refresh token in database
-    user.refreshToken = newRefreshToken;
+    user.refreshToken = newRefreshToken ?? "";
     await user.save();
 
-    // Return new tokens
     return res.status(200).json({
       success: true,
       data: {
         ...user.toObject(),
         accessToken: newAccessToken,
-        refreshToken: newRefreshToken
-      }
+        refreshToken: newRefreshToken,
+      },
     });
-
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorName = error instanceof Error ? error.name : 'UnknownError';
-    console.error(`Token refresh error: ${errorMessage}`);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    const name = error instanceof Error ? error.name : "UnknownError";
 
-    if (errorName === 'TokenExpiredError') {
+    console.error(`Token refresh error: ${message}`);
+
+    if (name === "TokenExpiredError") {
       return res.status(403).json({
         success: false,
-        message: 'Refresh token has expired'
+        message: "Refresh token has expired",
       });
     }
 
     return res.status(403).json({
       success: false,
-      message: 'Invalid refresh token'
+      message: "Invalid refresh token",
     });
   }
 });
 
-router.get('/me', requireUser(ALL_ROLES), async (req: AuthRequest, res: Response) => {
+// ==========================================================
+// 👤 PERFIL DO USUÁRIO ATUAL
+// ==========================================================
+router.get("/me", requireUser(ALL_ROLES), async (req: AuthenticatedRequest, res: Response) => {
   return res.status(200).json(req.user);
 });
+
+// ==========================================================
+// 👨‍🏫 LISTAR USUÁRIOS (com filtro opcional de role)
+// Exemplo: GET /users?role=professor
+// ==========================================================
+router.get(
+  "/users",
+  requireUser(["secretaria", "admin", "administrador"]),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { role } = req.query;
+      const query: any = {};
+
+      if (role) query.role = role;
+
+      const users = await User.find(query)
+        .select("_id nome email role ativo")
+        .sort({ nome: 1 })
+        .lean();
+
+      return res.status(200).json(users);
+    } catch (err) {
+      console.error("❌ authRoutes.get /users:", err);
+      return res.status(500).json({ message: "Erro ao listar usuários" });
+    }
+  }
+);
 
 export default router;

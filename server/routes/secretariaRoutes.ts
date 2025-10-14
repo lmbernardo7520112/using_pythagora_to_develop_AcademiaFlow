@@ -1,5 +1,6 @@
 // server/routes/secretariaRoutes.ts
 
+
 import express, { Request, Response } from "express";
 import { requireUser } from "./middlewares/auth.js";
 import secretariaService from "../services/secretariaService.js";
@@ -9,9 +10,6 @@ const router = express.Router();
 // ✅ Perfis que podem acessar as rotas da secretaria
 const requireSecretaria = requireUser(["secretaria", "admin", "administrador"]);
 
-// ==========================================================
-// 🚀 LOG DE CARREGAMENTO
-// ==========================================================
 console.log("✅ secretariaRoutes.ts carregado com sucesso!");
 
 // ==========================================================
@@ -147,12 +145,10 @@ router.get("/secretaria/disciplinas", requireSecretaria, async (_req: Request, r
   }
 });
 
-router.put("/secretaria/disciplinas/:disciplinaId/assign", requireSecretaria, async (req: Request, res: Response) => {
+router.put("/secretaria/disciplinas/:id/professor", requireSecretaria, async (req: Request, res: Response) => {
   try {
-    const { disciplinaId } = req.params;
-    const { professorId } = req.body;
-    const disciplina = await secretariaService.assignProfessorToDisciplina(disciplinaId, professorId);
-    return res.status(200).json(disciplina);
+    const updated = await secretariaService.assignProfessorToDisciplina(req.params.id, req.body.professorId);
+    return res.status(200).json(updated);
   } catch (err) {
     console.error("❌ secretariaRoutes.assignProfessorToDisciplina:", err);
     return res.status(500).json({ message: "Erro ao atribuir professor à disciplina" });

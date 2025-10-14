@@ -1,13 +1,18 @@
 // client/src/api/secretaria.ts
 
+
 import api from "./api";
 import { AxiosResponse } from "axios";
+
+/* ==========================================================
+   📘 Tipos principais
+========================================================== */
 
 export interface TurmaDTO {
   _id: string;
   nome: string;
   ano: number;
-  professor?: { _id: string; name?: string; email?: string };
+  professor?: { _id: string; nome?: string; email?: string };
   disciplinas?: { _id: string; nome?: string }[];
   alunos?: any[];
   ativo?: boolean;
@@ -37,7 +42,7 @@ export interface TaxaAprovacaoTurmaDTO {
   aprovados: number;
   reprovados: number;
   total: number;
-  taxa: string; // e.g., '85.71%'
+  taxa: string;
   taxaBim1?: number;
   taxaBim2?: number;
   taxaBim3?: number;
@@ -48,16 +53,16 @@ export interface TaxasAprovacaoDTO {
   turmas: Record<string, TaxaAprovacaoTurmaDTO>;
 }
 
-/**
- * Dashboard geral
- */
+/* ==========================================================
+   🧾 Dashboard geral
+========================================================== */
 export const getDashboardGeral = async (): Promise<
   AxiosResponse<DashboardGeralDTO>
 > => api.get("/secretaria/dashboard");
 
-/**
- * Turmas
- */
+/* ==========================================================
+   🎓 Turmas
+========================================================== */
 export const getTurmas = async (): Promise<AxiosResponse<TurmaDTO[]>> =>
   api.get("/secretaria/turmas");
 
@@ -65,26 +70,73 @@ export const getTurmaById = async (
   id: string
 ): Promise<AxiosResponse<TurmaDTO>> => api.get(`/secretaria/turmas/${id}`);
 
-/**
- * Alunos
- */
+export const updateAlunosInTurma = async (
+  turmaId: string,
+  alunosIds: string[]
+): Promise<AxiosResponse<TurmaDTO>> =>
+  api.put(`/secretaria/turmas/${turmaId}/alunos/manage`, { alunosIds });
+
+/* ==========================================================
+   👩‍🎓 Alunos
+========================================================== */
 export const getAlunosByTurma = async (
   turmaId: string
 ): Promise<AxiosResponse<AlunoDTO[]>> =>
   api.get(`/secretaria/turmas/${turmaId}/alunos`);
 
-/**
- * Atualizar status de aluno
- */
 export const updateAlunoStatus = async (
   alunoId: string,
   payload: { ativo?: boolean; transferido?: boolean; desistente?: boolean }
 ): Promise<AxiosResponse<AlunoDTO>> =>
   api.put(`/secretaria/alunos/${alunoId}`, payload);
 
-/**
- * Taxas de aprovação
- */
+/* ==========================================================
+   📚 Disciplinas (Novas funcionalidades)
+========================================================== */
+
+export interface DisciplinaDTO {
+  _id: string;
+  nome: string;
+  codigo: string;
+  professor?: { _id?: string; nome?: string; email?: string } | null;
+  turma?: { _id?: string; nome?: string; ano?: number } | null;
+  cargaHoraria: number;
+  ativo: boolean;
+}
+
+export const getDisciplines = async (): Promise<
+  AxiosResponse<DisciplinaDTO[]>
+> => api.get("/secretaria/disciplinas");
+
+export const assignProfessor = async (
+  disciplinaId: string,
+  professorId: string
+): Promise<AxiosResponse<DisciplinaDTO>> =>
+  api.put(`/secretaria/disciplinas/${disciplinaId}/professor`, { professorId });
+
+export const assignTurma = async (
+  disciplinaId: string,
+  turmaId: string
+): Promise<AxiosResponse<DisciplinaDTO>> =>
+  api.put(`/secretaria/disciplinas/${disciplinaId}/turma`, { turmaId });
+
+export const removeProfessor = async (
+  disciplinaId: string
+): Promise<AxiosResponse<DisciplinaDTO>> =>
+  api.put(`/secretaria/disciplinas/${disciplinaId}/professor`, {
+    professorId: null,
+  });
+
+export const removeTurma = async (
+  disciplinaId: string
+): Promise<AxiosResponse<DisciplinaDTO>> =>
+  api.put(`/secretaria/disciplinas/${disciplinaId}/turma`, {
+    turmaId: null,
+  });
+
+/* ==========================================================
+   📈 Taxas de aprovação
+========================================================== */
 export const getTaxasAprovacao = async (
   bimestre?: number
 ): Promise<AxiosResponse<TaxasAprovacaoDTO>> =>
@@ -92,9 +144,9 @@ export const getTaxasAprovacao = async (
     params: bimestre ? { bimestre } : {},
   });
 
-/**
- * 📊 Relatórios gerais da secretaria
- */
+/* ==========================================================
+   📊 Relatórios gerais da secretaria
+========================================================== */
 export interface RelatorioDTO {
   totalTurmas: number;
   totalAlunos: number;

@@ -1,5 +1,6 @@
 //client/src/App.tsx
 
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "./components/ui/toaster";
@@ -12,13 +13,12 @@ import { BlankPage } from "./pages/BlankPage";
 import { ProfessorDashboard } from "./pages/ProfessorDashboard";
 import { GradeManagement } from "./pages/GradeManagement";
 
-// ✅ Fluxos da Secretaria
 import SecretariaDashboard from "./pages/SecretariaDashboard";
 import SecretariaTurmas from "./pages/SecretariaTurmas";
 import SecretariaAlunos from "./pages/SecretariaAlunos";
 import SecretariaRelatorios from "./pages/SecretariaRelatorios";
+import { SecretariaDisciplinas } from "./pages/SecretariaDisciplinas";
 
-// ✅ Redirecionamento e acesso negado
 import { RoleRedirect } from "./components/RoleRedirect";
 import { Unauthorized } from "./pages/Unauthorized";
 
@@ -28,11 +28,11 @@ function App() {
       <ThemeProvider defaultTheme="light" storageKey="ui-theme">
         <Router>
           <Routes>
-            {/* 🔹 Rotas públicas */}
+            {/* Rotas públicas */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* 🔹 Redirecionamento inicial baseado no papel */}
+            {/* Redirecionamento inicial */}
             <Route
               path="/"
               element={
@@ -42,7 +42,7 @@ function App() {
               }
             />
 
-            {/* 🔹 Rotas do Professor */}
+            {/* Rotas do Professor */}
             <Route
               path="/professor/*"
               element={
@@ -51,20 +51,18 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              {/* Dashboard principal */}
               <Route index element={<ProfessorDashboard />} />
-              {/* Gerenciamento de notas */}
               <Route
                 path="grades/:turmaId/:disciplinaId"
                 element={<GradeManagement />}
               />
             </Route>
 
-            {/* 🔹 Rotas da Secretaria */}
+            {/* Rotas da Secretaria */}
             <Route
               path="/secretaria/*"
               element={
-                <ProtectedRoute roles={["secretaria"]}>
+                <ProtectedRoute roles={["secretaria", "admin", "administrador"]}>
                   <Layout />
                 </ProtectedRoute>
               }
@@ -72,13 +70,11 @@ function App() {
               <Route index element={<SecretariaDashboard />} />
               <Route path="turmas" element={<SecretariaTurmas />} />
               <Route path="turmas/:turmaId/alunos" element={<SecretariaAlunos />} />
+              <Route path="disciplinas" element={<SecretariaDisciplinas />} />
               <Route path="relatorios" element={<SecretariaRelatorios />} />
             </Route>
 
-            {/* 🔹 Página de acesso negado */}
             <Route path="/unauthorized" element={<Unauthorized />} />
-
-            {/* 🔹 Página genérica (404) */}
             <Route path="*" element={<BlankPage />} />
           </Routes>
         </Router>
