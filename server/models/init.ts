@@ -1,7 +1,8 @@
 // server/models/init.ts
+
 import Aluno from "./Aluno.js";
 import Turma from "./Turma.js";
-import Disciplina from "./Disciplina.ts"; // ✅ Adicionado
+import Disciplina from "./Disciplina.js"; // ✅ corrigido: .ts → .js
 
 /**
  * Inicialização do modelo e pequenas migrações idempotentes.
