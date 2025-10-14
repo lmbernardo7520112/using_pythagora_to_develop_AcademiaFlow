@@ -1,43 +1,64 @@
 // server/services/secretariaService.ts
 
-// server/services/secretariaService.ts
 import mongoose from "mongoose";
 import Turma from "../models/Turma.js";
 import Aluno from "../models/Aluno.js";
+import Disciplina from "../models/Disciplina.js";
 import { getGradesByTurmaAndDisciplina } from "./gradeService.js";
 
 /**
- * Secretaria service — usa apenas modelos existentes e funções nomeadas do gradeService.
- * Todas as operações são aditivas (não modificam schemas existentes).
+ * Secretaria service — operações administrativas de alto nível.
+ * Preserva compatibilidade total com os fluxos existentes (frontend e backend).
  */
 const secretariaService = {
-  // -------------------- TURMAS --------------------
+  // ==========================================================
+  // 🎓 TURMAS
+  // ==========================================================
+
+  /**
+   * Lista todas as turmas ativas, exibindo apenas dados neutros
+   * (sem professor) e com as disciplinas vinculadas.
+   */
   async listTurmas() {
     try {
-      return await Turma.find({ ativo: true })
-        .populate("professor", "name email role")
-        .populate("disciplinas", "nome")
+      const turmas = await Turma.find({ ativo: true })
+        .populate({ path: "disciplinas", select: "nome codigo" })
+        .select("nome ano disciplinas ativo")
         .lean();
+
+      return turmas.map((t: any) => ({
+        _id: t._id,
+        nome: t.nome ?? "(Sem nome)",
+        ano: t.ano ?? new Date().getFullYear(),
+        disciplinas: Array.isArray(t.disciplinas) ? t.disciplinas : [],
+        ativo: t.ativo !== false,
+      }));
     } catch (error) {
-      console.error("secretariaService.listTurmas:", error);
+      console.error("❌ secretariaService.listTurmas:", error);
       throw new Error("Erro ao listar turmas");
     }
   },
 
+  /**
+   * Retorna uma turma específica com seus alunos e disciplinas.
+   */
   async getTurmaById(id: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
       return await Turma.findById(id)
-        .populate("professor", "name email")
-        .populate("disciplinas", "nome")
-        .populate("alunos", "nome matricula email ativo")
+        .populate("disciplinas", "nome codigo")
+        .populate("alunos", "nome matricula email ativo transferido desistente")
         .lean();
     } catch (error) {
-      console.error("secretariaService.getTurmaById:", error);
+      console.error("❌ secretariaService.getTurmaById:", error);
       throw new Error("Erro ao obter turma");
     }
   },
 
+  /**
+   * Cria uma nova turma com disciplinas e professor.
+   * Mantém compatibilidade retroativa com as rotas existentes.
+   */
   async createTurma(data: any) {
     try {
       if (!data.nome || !data.ano || !data.professor || !data.disciplinas) {
@@ -58,11 +79,14 @@ const secretariaService = {
 
       return await nova.save();
     } catch (error) {
-      console.error("secretariaService.createTurma:", error);
+      console.error("❌ secretariaService.createTurma:", error);
       throw new Error("Erro ao criar turma");
     }
   },
 
+  /**
+   * Atualiza dados de uma turma existente.
+   */
   async updateTurma(id: string, data: any) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
@@ -70,11 +94,14 @@ const secretariaService = {
       if (!updated) throw new Error("Turma não encontrada");
       return updated;
     } catch (error) {
-      console.error("secretariaService.updateTurma:", error);
+      console.error("❌ secretariaService.updateTurma:", error);
       throw new Error("Erro ao atualizar turma");
     }
   },
 
+  /**
+   * Desativa uma turma e seus alunos vinculados.
+   */
   async disableTurma(id: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
@@ -84,21 +111,25 @@ const secretariaService = {
       turma.ativo = false;
       await turma.save();
 
-      // desativa alunos vinculados
       await Aluno.updateMany({ turma: id }, { ativo: false });
     } catch (error) {
-      console.error("secretariaService.disableTurma:", error);
+      console.error("❌ secretariaService.disableTurma:", error);
       throw new Error("Erro ao desativar turma");
     }
   },
 
-  // -------------------- ALUNOS --------------------
+  // ==========================================================
+  // 👩‍🎓 ALUNOS
+  // ==========================================================
   async listAlunosByTurma(turmaId: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(turmaId)) throw new Error("ID inválido");
-      return await Aluno.find({ turma: turmaId }).sort({ nome: 1 }).lean();
+      return await Aluno.find({ turma: turmaId })
+        .select("nome matricula email ativo transferido desistente")
+        .sort({ nome: 1 })
+        .lean();
     } catch (error) {
-      console.error("secretariaService.listAlunosByTurma:", error);
+      console.error("❌ secretariaService.listAlunosByTurma:", error);
       throw new Error("Erro ao listar alunos");
     }
   },
@@ -116,17 +147,22 @@ const secretariaService = {
       const exists = await Aluno.findOne({
         $or: [{ matricula: data.matricula }, { email: data.email }],
       });
-
       if (exists) throw new Error("Matrícula ou e-mail já cadastrados");
 
-      const novo = await Aluno.create({ ...data, turma: turma._id, ativo: true });
+      const novo = await Aluno.create({
+        ...data,
+        turma: turma._id,
+        ativo: true,
+        transferido: false,
+        desistente: false,
+      });
 
       turma.alunos.push(novo._id as mongoose.Types.ObjectId);
       await turma.save();
 
       return novo;
     } catch (error) {
-      console.error("secretariaService.createAluno:", error);
+      console.error("❌ secretariaService.createAluno:", error);
       throw new Error("Erro ao criar aluno");
     }
   },
@@ -138,7 +174,7 @@ const secretariaService = {
       if (!updated) throw new Error("Aluno não encontrado");
       return updated;
     } catch (error) {
-      console.error("secretariaService.updateAluno:", error);
+      console.error("❌ secretariaService.updateAluno:", error);
       throw new Error("Erro ao atualizar aluno");
     }
   },
@@ -151,38 +187,29 @@ const secretariaService = {
       aluno.ativo = false;
       await aluno.save();
     } catch (error) {
-      console.error("secretariaService.disableAluno:", error);
+      console.error("❌ secretariaService.disableAluno:", error);
       throw new Error("Erro ao desativar aluno");
     }
   },
 
-  // -------------------- DASHBOARD / TAXAS --------------------
+  // ==========================================================
+  // 📊 DASHBOARD / TAXAS
+  // ==========================================================
   async getDashboardGeral() {
     try {
-      // Contagens básicas
       const totalTurmas = await Turma.countDocuments({ ativo: true });
       const totalAlunos = await Aluno.countDocuments();
-
-      // Contagem real de ativos e inativos
       const ativos = await Aluno.countDocuments({ ativo: true });
       const inativos = await Aluno.countDocuments({ ativo: false });
 
-      // Como o modelo atual não possui status específicos,
-      // os campos abaixo permanecem zerados, para manter compatibilidade com o frontend.
+      // Mantém compatibilidade com estrutura esperada pelo frontend
       const transferidos = 0;
       const desistentes = 0;
-      const abandonos = inativos; // alunos inativos considerados abandonos por ora
+      const abandonos = inativos;
 
-      return {
-        totalTurmas,
-        totalAlunos,
-        ativos,
-        transferidos,
-        desistentes,
-        abandonos,
-      };
+      return { totalTurmas, totalAlunos, ativos, transferidos, desistentes, abandonos };
     } catch (error) {
-      console.error("secretariaService.getDashboardGeral:", error);
+      console.error("❌ secretariaService.getDashboardGeral:", error);
       throw new Error("Erro ao gerar dashboard");
     }
   },
@@ -192,12 +219,14 @@ const secretariaService = {
       if (!mongoose.Types.ObjectId.isValid(turmaId)) throw new Error("ID inválido");
       const turma = await Turma.findById(turmaId).populate("alunos").lean();
       if (!turma) throw new Error("Turma não encontrada");
+
       const total = turma.alunos?.length || 0;
       const ativos = turma.alunos?.filter((a: any) => a.ativo).length || 0;
       const inativos = total - ativos;
+
       return { turma: turma.nome, total, ativos, inativos };
     } catch (error) {
-      console.error("secretariaService.getDashboardTurma:", error);
+      console.error("❌ secretariaService.getDashboardTurma:", error);
       throw new Error("Erro ao gerar dashboard da turma");
     }
   },
@@ -233,8 +262,46 @@ const secretariaService = {
         turmas: resultado,
       };
     } catch (error) {
-      console.error("secretariaService.getTaxasAprovacao:", error);
+      console.error("❌ secretariaService.getTaxasAprovacao:", error);
       throw new Error("Erro ao calcular taxas de aprovação");
+    }
+  },
+
+  // ==========================================================
+  // 📚 DISCIPLINAS
+  // ==========================================================
+  async listDisciplinas() {
+    try {
+      const disciplinas = await Disciplina.find()
+        .populate("professor", "nome email role")
+        .populate("turma", "nome ano")
+        .sort({ nome: 1 })
+        .lean();
+
+      return disciplinas.map((d: any) => ({
+        _id: d._id,
+        nome: d.nome,
+        codigo: d.codigo,
+        cargaHoraria: d.cargaHoraria ?? 0,
+        ativo: d.ativo !== false,
+        professor: d.professor
+          ? {
+              _id: d.professor._id,
+              nome: d.professor.nome,
+              email: d.professor.email,
+            }
+          : null,
+        turma: d.turma
+          ? {
+              _id: d.turma._id,
+              nome: d.turma.nome,
+              ano: d.turma.ano,
+            }
+          : null,
+      }));
+    } catch (error) {
+      console.error("❌ secretariaService.listDisciplinas:", error);
+      throw new Error("Erro ao listar disciplinas");
     }
   },
 };
