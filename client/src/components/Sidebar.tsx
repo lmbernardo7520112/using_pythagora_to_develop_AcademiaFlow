@@ -1,6 +1,5 @@
 // client/src/components/Sidebar.tsx
 
-
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
