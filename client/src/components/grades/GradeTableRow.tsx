@@ -1,4 +1,5 @@
 //client/src/components/grades/GradeTableRow.tsx
+
 import { Student } from '@/types/academic';
 import { GradeCell } from './GradeCell';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ export function GradeTableRow({ student, onGradeUpdate, studentIndex }: GradeTab
       case 'Recuperação': return 'bg-yellow-500 text-white';
       case 'Reprovado': return 'bg-red-500 text-white';
       case 'Pendente': return 'bg-gray-300 text-gray-700';
-      case 'Aguardando PF': return 'bg-blue-500 text-white'; // Adicionado para destaque visual
+      case 'Aguardando PF': return 'bg-blue-500 text-white';
       case 'N/A': return 'bg-gray-300 text-gray-700';
       default: return 'bg-gray-300 text-gray-700';
     }
@@ -41,6 +42,7 @@ export function GradeTableRow({ student, onGradeUpdate, studentIndex }: GradeTab
     <tr className="border-b hover:bg-muted/50 transition-colors">
       <td className="p-3 text-center font-medium sticky left-0 bg-background z-10">{studentIndex + 1}</td>
       <td className="p-3 sticky left-12 bg-background z-10 min-w-[200px]">{displayName}</td>
+
       {(['avaliacao1', 'avaliacao2', 'avaliacao3', 'final'] as const).map((field, idx) => (
         <td key={field} className="p-3">
           <GradeCell
@@ -50,6 +52,7 @@ export function GradeTableRow({ student, onGradeUpdate, studentIndex }: GradeTab
           />
         </td>
       ))}
+
       <td className="p-3">
         <GradeCell value={student.nf ?? null} editable={false} className="bg-muted" onSave={async () => {}} />
       </td>
@@ -59,11 +62,13 @@ export function GradeTableRow({ student, onGradeUpdate, studentIndex }: GradeTab
       <td className="p-3">
         <GradeCell value={student.mf ?? null} editable={false} className="bg-muted" onSave={async () => {}} />
       </td>
+
       <td className="p-3 text-center">
         <Badge className={cn('font-semibold', getStatusColor(student.status))}>
           {student.status || 'Pendente'}
         </Badge>
       </td>
+
       <td className="p-3">
         <GradeCell
           value={student.pf ?? null}
@@ -72,6 +77,7 @@ export function GradeTableRow({ student, onGradeUpdate, studentIndex }: GradeTab
           className={!needsRecovery ? 'bg-muted' : ''}
         />
       </td>
+
       <td className="p-3 text-center">
         <Badge className={cn('font-semibold', getStatusColor(sfDisplay))}>
           {sfDisplay}

@@ -1,5 +1,6 @@
 //client/src/App.tsx
 
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "./components/ui/toaster";
@@ -53,7 +54,10 @@ function App() {
                 </ProtectedRoute>
               }
             >
+              {/* Painel inicial do professor */}
               <Route index element={<ProfessorDashboard />} />
+
+              {/* ✅ Rota de gerenciamento de notas corrigida */}
               <Route
                 path="grades/:turmaId/:disciplinaId"
                 element={<GradeManagement />}

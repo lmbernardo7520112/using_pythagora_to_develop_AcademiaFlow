@@ -21,18 +21,46 @@ export function Sidebar() {
 
   const role = currentUser?.role ?? "guest";
 
-  // 🔹 Define os itens do menu de acordo com o perfil
+  /**
+   * 🔹 Define os itens do menu de acordo com o perfil logado
+   * (Ajuste aplicado: paths únicos para o professor, evitando chaves duplicadas)
+   */
   const menuItems =
     role === "professor"
       ? [
-          { label: "Dashboard", path: "/", icon: LayoutDashboard },
-          { label: "Minhas Disciplinas", path: "/", icon: BookOpen },
+          {
+            key: "professor-dashboard",
+            label: "Dashboard",
+            path: "/professor",
+            icon: LayoutDashboard,
+          },
+          {
+            key: "professor-disciplines",
+            label: "Minhas Disciplinas",
+            path: "/professor/disciplinas",
+            icon: BookOpen,
+          },
         ]
       : role === "secretaria" || role === "admin" || role === "administrador"
       ? [
-          { label: "Dashboard", path: "/secretaria", icon: LayoutDashboard },
-          { label: "Turmas", path: "/secretaria/turmas", icon: GraduationCap },
-          { label: "Relatórios", path: "/secretaria/relatorios", icon: BarChart3 },
+          {
+            key: "secretaria-dashboard",
+            label: "Dashboard",
+            path: "/secretaria",
+            icon: LayoutDashboard,
+          },
+          {
+            key: "secretaria-turmas",
+            label: "Turmas",
+            path: "/secretaria/turmas",
+            icon: GraduationCap,
+          },
+          {
+            key: "secretaria-relatorios",
+            label: "Relatórios",
+            path: "/secretaria/relatorios",
+            icon: BarChart3,
+          },
         ]
       : [];
 
@@ -53,9 +81,9 @@ export function Sidebar() {
         </h2>
 
         <nav className="mt-4 flex flex-col space-y-1">
-          {menuItems.map(({ label, path, icon: Icon }) => (
+          {menuItems.map(({ key, label, path, icon: Icon }) => (
             <NavLink
-              key={path}
+              key={key}
               to={path}
               className={({ isActive }) =>
                 `flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -64,6 +92,7 @@ export function Sidebar() {
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`
               }
+              end
             >
               <Icon className="w-4 h-4 mr-2" />
               {label}
