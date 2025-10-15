@@ -12,13 +12,13 @@ import { BlankPage } from "./pages/BlankPage";
 import { ProfessorDashboard } from "./pages/ProfessorDashboard";
 import { GradeManagement } from "./pages/GradeManagement";
 
-// ✅ Novos imports para os fluxos da Secretaria
+// ✅ Fluxos da Secretaria
 import SecretariaDashboard from "./pages/SecretariaDashboard";
 import SecretariaTurmas from "./pages/SecretariaTurmas";
 import SecretariaAlunos from "./pages/SecretariaAlunos";
 import SecretariaRelatorios from "./pages/SecretariaRelatorios";
 
-// ✅ Novo componente de redirecionamento por role
+// ✅ Redirecionamento automático por role
 import { RoleRedirect } from "./components/RoleRedirect";
 
 // ✅ Página de acesso negado
@@ -64,7 +64,7 @@ function App() {
             <Route
               path="/secretaria/*"
               element={
-                <ProtectedRoute roles={["secretaria"]}>
+                <ProtectedRoute roles={["secretaria", "admin", "administrador"]}>
                   <Layout />
                 </ProtectedRoute>
               }

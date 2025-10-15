@@ -1,20 +1,17 @@
 // server/routes/secretariaRoutes.ts
 
-// server/routes/secretariaRoutes.ts
 
 import express, { Request, Response } from "express";
 import { requireUser } from "./middlewares/auth.js";
 import secretariaService from "../services/secretariaService.js";
 
 const router = express.Router();
-
-// ✅ Perfis que podem acessar as rotas da secretaria
 const requireSecretaria = requireUser(["secretaria", "admin", "administrador"]);
 
 console.log("✅ secretariaRoutes.ts carregado com sucesso!");
 
 // ==========================================================
-// 📊 DASHBOARD GERAL E POR TURMA
+// 📊 DASHBOARD
 // ==========================================================
 router.get("/secretaria/dashboard", requireSecretaria, async (_req: Request, res: Response) => {
   try {
@@ -41,7 +38,6 @@ router.get("/secretaria/turmas/:id/dashboard", requireSecretaria, async (req: Re
 // ==========================================================
 router.get("/secretaria/turmas", requireSecretaria, async (_req: Request, res: Response) => {
   try {
-    // ✅ Usa a listagem neutra (sem professor) já implementada
     const turmas = await secretariaService.listTurmas();
     return res.status(200).json(turmas);
   } catch (err) {
@@ -104,12 +100,22 @@ router.get("/secretaria/turmas/:turmaId/alunos", requireSecretaria, async (req: 
   }
 });
 
+// ✏️ Atualização de status de aluno
+router.put("/secretaria/alunos/:id", requireSecretaria, async (req: Request, res: Response) => {
+  try {
+    const alunoAtualizado = await secretariaService.updateAluno(req.params.id, req.body);
+    return res.status(200).json(alunoAtualizado);
+  } catch (err: any) {
+    console.error("❌ secretariaRoutes.updateAluno:", err);
+    return res.status(400).json({ message: err.message });
+  }
+});
+
 // ==========================================================
 // 📚 DISCIPLINAS
 // ==========================================================
 router.get("/secretaria/disciplinas", requireSecretaria, async (_req: Request, res: Response) => {
   try {
-    // ✅ Garante compatibilidade com frontend (SecretariaDisciplinas.tsx)
     const disciplinas = await secretariaService.listDisciplinas();
     return res.status(200).json(disciplinas);
   } catch (err) {

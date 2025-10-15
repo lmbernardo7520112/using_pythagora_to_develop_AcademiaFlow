@@ -1,18 +1,51 @@
 // client/src/pages/SecretariaAlunos.tsx
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAlunosByTurma, getTurmaById } from "@/api/secretaria";
+import {
+  getAlunosByTurma,
+  getTurmaById,
+  updateAlunoStatus,
+  AlunoDTO,
+} from "@/api/secretaria";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/useToast";
+import {
+  CheckCircle,
+  XCircle,
+  ArrowRightCircle,
+  CircleSlash,
+} from "lucide-react";
 
 export default function SecretariaAlunos() {
   const { turmaId } = useParams<{ turmaId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const [alunos, setAlunos] = useState<any[]>([]);
+  const [alunos, setAlunos] = useState<AlunoDTO[]>([]);
   const [turmaNome, setTurmaNome] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [selectedAluno, setSelectedAluno] = useState<AlunoDTO | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!turmaId) return;
@@ -39,6 +72,65 @@ export default function SecretariaAlunos() {
 
     fetchData();
   }, [turmaId]);
+
+  const handleOpenModal = (aluno: AlunoDTO) => {
+    setSelectedAluno(aluno);
+    setSelectedStatus(
+      aluno.transferido
+        ? "transferido"
+        : aluno.desistente
+        ? "desistente"
+        : aluno.ativo
+        ? "ativo"
+        : ""
+    );
+    setIsDialogOpen(true);
+  };
+
+  const handleChangeStatus = async () => {
+    if (!selectedAluno || !selectedStatus) return;
+
+    try {
+      const payload = {
+        ativo: selectedStatus === "ativo",
+        transferido: selectedStatus === "transferido",
+        desistente: selectedStatus === "desistente",
+      };
+
+      await updateAlunoStatus(selectedAluno._id, payload);
+
+      setAlunos((prev) =>
+        prev.map((a) =>
+          a._id === selectedAluno._id ? { ...a, ...payload } : a
+        )
+      );
+
+      toast({
+        title: "Status atualizado",
+        description: `O status de ${selectedAluno.nome} foi alterado para ${selectedStatus}.`,
+      });
+
+      setIsDialogOpen(false);
+      setSelectedAluno(null);
+    } catch (err) {
+      console.error("Erro ao atualizar status:", err);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar o status do aluno.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderStatusIcon = (aluno: AlunoDTO) => {
+    if (aluno.transferido)
+      return <ArrowRightCircle className="inline text-yellow-600 w-4 h-4 ml-1" />;
+    if (aluno.desistente)
+      return <XCircle className="inline text-red-600 w-4 h-4 ml-1" />;
+    if (aluno.ativo)
+      return <CheckCircle className="inline text-green-600 w-4 h-4 ml-1" />;
+    return <CircleSlash className="inline text-gray-400 w-4 h-4 ml-1" />;
+  };
 
   if (loading) return <p className="p-6">Carregando alunos...</p>;
   if (error)
@@ -67,31 +159,96 @@ export default function SecretariaAlunos() {
           {alunos.map((a) => (
             <Card key={a._id} className="hover:shadow-md transition-shadow">
               <CardHeader>
-                <CardTitle>{a.nome}</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>{a.nome}</span>
+                  {renderStatusIcon(a)}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p>
-                  <strong>Matrícula:</strong> {a.matricula}
-                </p>
-                <p>
-                  <strong>Email:</strong> {a.email}
-                </p>
+                <p><strong>Matrícula:</strong> {a.matricula}</p>
+                <p><strong>Email:</strong> {a.email}</p>
                 <p>
                   <strong>Status:</strong>{" "}
-                  <span className={a.ativo ? "text-green-600" : "text-gray-500"}>
-                    {a.ativo ? "Ativo" : "Inativo"}
+                  <span
+                    className={
+                      a.transferido
+                        ? "text-yellow-600"
+                        : a.desistente
+                        ? "text-red-600"
+                        : a.ativo
+                        ? "text-green-600"
+                        : "text-gray-500"
+                    }
+                  >
+                    {a.transferido
+                      ? "Transferido"
+                      : a.desistente
+                      ? "Desistente"
+                      : a.ativo
+                      ? "Ativo"
+                      : "Inativo"}
                   </span>
                 </p>
-                {a.transferido && (
-                  <p className="text-yellow-600">
-                    <strong>Transferido</strong>
-                  </p>
-                )}
-                {a.desistente && (
-                  <p className="text-red-600">
-                    <strong>Desistente</strong>
-                  </p>
-                )}
+
+                <div className="mt-3">
+                  <Dialog open={isDialogOpen && selectedAluno?._id === a._id} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleOpenModal(a)}
+                      >
+                        Alterar Status
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Alterar Status do Aluno</DialogTitle>
+                      </DialogHeader>
+
+                      <div className="space-y-4">
+                        <p>
+                          Aluno: <strong>{selectedAluno?.nome}</strong>
+                        </p>
+
+                        <Select
+                          value={selectedStatus}
+                          onValueChange={setSelectedStatus}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o novo status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ativo">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="text-green-600 w-4 h-4" />
+                                Ativo
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="transferido">
+                              <div className="flex items-center gap-2">
+                                <ArrowRightCircle className="text-yellow-600 w-4 h-4" />
+                                Transferido
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="desistente">
+                              <div className="flex items-center gap-2">
+                                <XCircle className="text-red-600 w-4 h-4" />
+                                Desistente
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <DialogFooter className="mt-4 flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={handleChangeStatus}>Salvar</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardContent>
             </Card>
           ))}

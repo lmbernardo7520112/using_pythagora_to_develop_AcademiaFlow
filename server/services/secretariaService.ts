@@ -15,10 +15,6 @@ const secretariaService = {
   // 🎓 TURMAS
   // ==========================================================
 
-  /**
-   * Lista todas as turmas ativas, exibindo apenas dados neutros
-   * (sem professor) e com as disciplinas vinculadas.
-   */
   async listTurmas() {
     try {
       const turmas = await Turma.find({ ativo: true })
@@ -39,9 +35,6 @@ const secretariaService = {
     }
   },
 
-  /**
-   * Retorna uma turma específica com seus alunos e disciplinas.
-   */
   async getTurmaById(id: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
@@ -55,10 +48,6 @@ const secretariaService = {
     }
   },
 
-  /**
-   * Cria uma nova turma com disciplinas e professor.
-   * Mantém compatibilidade retroativa com as rotas existentes.
-   */
   async createTurma(data: any) {
     try {
       if (!data.nome || !data.ano || !data.professor || !data.disciplinas) {
@@ -84,9 +73,6 @@ const secretariaService = {
     }
   },
 
-  /**
-   * Atualiza dados de uma turma existente.
-   */
   async updateTurma(id: string, data: any) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
@@ -99,9 +85,6 @@ const secretariaService = {
     }
   },
 
-  /**
-   * Desativa uma turma e seus alunos vinculados.
-   */
   async disableTurma(id: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
@@ -121,6 +104,7 @@ const secretariaService = {
   // ==========================================================
   // 👩‍🎓 ALUNOS
   // ==========================================================
+
   async listAlunosByTurma(turmaId: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(turmaId)) throw new Error("ID inválido");
@@ -167,10 +151,30 @@ const secretariaService = {
     }
   },
 
+  /**
+   * Atualiza dados de um aluno e normaliza status (ativo, transferido, desistente)
+   */
   async updateAluno(id: string, data: any) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
-      const updated = await Aluno.findByIdAndUpdate(id, data, { new: true });
+
+      // 🔹 Normalização de status
+      const normalizeStatus = (dados: any) => {
+        const status = { ativo: false, transferido: false, desistente: false };
+        if (dados.transferido) status.transferido = true;
+        else if (dados.desistente) status.desistente = true;
+        else status.ativo = true;
+        return status;
+      };
+
+      const statusAtualizado = normalizeStatus(data);
+
+      const updated = await Aluno.findByIdAndUpdate(
+        id,
+        { ...data, ...statusAtualizado },
+        { new: true }
+      );
+
       if (!updated) throw new Error("Aluno não encontrado");
       return updated;
     } catch (error) {
@@ -195,17 +199,15 @@ const secretariaService = {
   // ==========================================================
   // 📊 DASHBOARD / TAXAS
   // ==========================================================
+
   async getDashboardGeral() {
     try {
       const totalTurmas = await Turma.countDocuments({ ativo: true });
       const totalAlunos = await Aluno.countDocuments();
       const ativos = await Aluno.countDocuments({ ativo: true });
-      const inativos = await Aluno.countDocuments({ ativo: false });
-
-      // Mantém compatibilidade com estrutura esperada pelo frontend
-      const transferidos = 0;
-      const desistentes = 0;
-      const abandonos = inativos;
+      const transferidos = await Aluno.countDocuments({ transferido: true });
+      const desistentes = await Aluno.countDocuments({ desistente: true });
+      const abandonos = await Aluno.countDocuments({ ativo: false });
 
       return { totalTurmas, totalAlunos, ativos, transferidos, desistentes, abandonos };
     } catch (error) {
@@ -270,6 +272,7 @@ const secretariaService = {
   // ==========================================================
   // 📚 DISCIPLINAS
   // ==========================================================
+
   async listDisciplinas() {
     try {
       const disciplinas = await Disciplina.find()

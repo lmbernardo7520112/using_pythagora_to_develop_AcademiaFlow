@@ -1,5 +1,6 @@
 // client/src/api/secretaria.ts
 
+
 import api from "./api";
 import { AxiosResponse } from "axios";
 
@@ -41,7 +42,7 @@ export interface TaxaAprovacaoTurmaDTO {
   aprovados: number;
   reprovados: number;
   total: number;
-  taxa: string; // e.g., '85.71%'
+  taxa: string; // Exemplo: '85.71%'
   taxaBim1?: number;
   taxaBim2?: number;
   taxaBim3?: number;
@@ -77,6 +78,15 @@ export const getAlunosByTurma = async (
   turmaId: string
 ): Promise<AxiosResponse<AlunoDTO[]>> =>
   api.get(`/secretaria/turmas/${turmaId}/alunos`);
+
+/**
+ * Atualiza o status de um aluno (ativo, transferido ou desistente)
+ * Endpoint: PUT /secretaria/alunos/:id
+ */
+export const updateAlunoStatus = async (
+  id: string,
+  data: Partial<AlunoDTO>
+): Promise<AxiosResponse<AlunoDTO>> => api.put(`/secretaria/alunos/${id}`, data);
 
 /* ==========================================================
    📚 Disciplinas

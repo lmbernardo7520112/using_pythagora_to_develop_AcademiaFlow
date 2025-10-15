@@ -1,6 +1,5 @@
 // client/src/components/Sidebar.tsx
 
-// client/src/components/Sidebar.tsx
 
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -8,15 +7,14 @@ import { Button } from "./ui/button";
 import {
   LogOut,
   LayoutDashboard,
-  Users,
   BookOpen,
   GraduationCap,
   BarChart3,
 } from "lucide-react";
 
 /**
- * 🎯 Sidebar com menus dinâmicos por perfil (professor / secretaria)
- * Agora inclui acesso aos Relatórios no painel da secretaria.
+ * 🎯 Sidebar dinâmica por perfil (professor / secretaria)
+ * A opção "Alunos" foi removida — os alunos agora são acessados via "Turmas".
  */
 export function Sidebar() {
   const { currentUser, logout } = useAuth();
@@ -24,19 +22,18 @@ export function Sidebar() {
 
   const role = currentUser?.role ?? "guest";
 
-  // 🔹 Define os itens do menu de acordo com o role
+  // 🔹 Define os itens do menu de acordo com o perfil
   const menuItems =
     role === "professor"
       ? [
           { label: "Dashboard", path: "/", icon: LayoutDashboard },
           { label: "Minhas Disciplinas", path: "/", icon: BookOpen },
         ]
-      : role === "secretaria"
+      : role === "secretaria" || role === "admin" || role === "administrador"
       ? [
           { label: "Dashboard", path: "/secretaria", icon: LayoutDashboard },
           { label: "Turmas", path: "/secretaria/turmas", icon: GraduationCap },
-          { label: "Alunos", path: "/secretaria/alunos", icon: Users },
-          { label: "Relatórios", path: "/secretaria/relatorios", icon: BarChart3 }, // ✅ Novo item
+          { label: "Relatórios", path: "/secretaria/relatorios", icon: BarChart3 },
         ]
       : [];
 
@@ -49,7 +46,7 @@ export function Sidebar() {
     <aside className="w-64 bg-card text-card-foreground border-r border-border flex flex-col justify-between">
       <div className="p-4 space-y-2">
         <h2 className="text-lg font-semibold tracking-tight">
-          {role === "secretaria"
+          {role === "secretaria" || role === "admin" || role === "administrador"
             ? "Painel da Secretaria"
             : role === "professor"
             ? "Painel do Professor"

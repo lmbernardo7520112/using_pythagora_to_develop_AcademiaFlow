@@ -3,8 +3,7 @@
 
 import express from "express";
 
-// ✅ Importações ajustadas para o modo ESM + Node16
-// (mesmo que o arquivo-fonte seja .ts, o Node buscará o .js após a transpilação)
+// ✅ Importações compatíveis com Node ESM (.js após build)
 import professorRoutes from "./professorRoutes.js";
 import gradesRoutes from "./gradesRoutes.js";
 import secretariaRoutes from "./secretariaRoutes.js";
@@ -26,7 +25,7 @@ router.get("/ping", (_req, res) => {
 // ==========================================================
 // 🚀 Rotas principais da aplicação
 // ==========================================================
-// ⚠️ Todas as rotas internas já possuem prefixos (/professor, /notas, /secretaria, etc.)
+// ⚠️ Cada módulo já contém seu prefixo base (/professor, /notas, /secretaria, etc.)
 router.use("/api", professorRoutes);
 router.use("/api", gradesRoutes);
 router.use("/api", secretariaRoutes);
