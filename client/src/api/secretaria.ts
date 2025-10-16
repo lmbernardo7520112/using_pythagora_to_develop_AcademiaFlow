@@ -13,7 +13,11 @@ export interface TurmaDTO {
   nome: string;
   ano: number;
   professor?: { _id: string; nome?: string; email?: string };
+<<<<<<< HEAD
   disciplinas?: { _id: string; nome?: string }[];
+=======
+  disciplinas?: { _id: string; nome?: string; codigo?: string }[];
+>>>>>>> feature/prd003-secretary-class-view-refactor
   alunos?: any[];
   ativo?: boolean;
 }
@@ -42,7 +46,11 @@ export interface TaxaAprovacaoTurmaDTO {
   aprovados: number;
   reprovados: number;
   total: number;
+<<<<<<< HEAD
   taxa: string;
+=======
+  taxa: string; // Exemplo: '85.71%'
+>>>>>>> feature/prd003-secretary-class-view-refactor
   taxaBim1?: number;
   taxaBim2?: number;
   taxaBim3?: number;
@@ -68,6 +76,7 @@ export const getTurmas = async (): Promise<AxiosResponse<TurmaDTO[]>> =>
 
 export const getTurmaById = async (
   id: string
+<<<<<<< HEAD
 ): Promise<AxiosResponse<TurmaDTO>> => api.get(`/secretaria/turmas/${id}`);
 
 export const updateAlunosInTurma = async (
@@ -76,6 +85,11 @@ export const updateAlunosInTurma = async (
 ): Promise<AxiosResponse<TurmaDTO>> =>
   api.put(`/secretaria/turmas/${turmaId}/alunos/manage`, { alunosIds });
 
+=======
+): Promise<AxiosResponse<TurmaDTO>> =>
+  api.get(`/secretaria/turmas/${id}`);
+
+>>>>>>> feature/prd003-secretary-class-view-refactor
 /* ==========================================================
    👩‍🎓 Alunos
 ========================================================== */
@@ -84,6 +98,7 @@ export const getAlunosByTurma = async (
 ): Promise<AxiosResponse<AlunoDTO[]>> =>
   api.get(`/secretaria/turmas/${turmaId}/alunos`);
 
+<<<<<<< HEAD
 export const updateAlunoStatus = async (
   alunoId: string,
   payload: { ativo?: boolean; transferido?: boolean; desistente?: boolean }
@@ -94,10 +109,25 @@ export const updateAlunoStatus = async (
    📚 Disciplinas (Novas funcionalidades)
 ========================================================== */
 
+=======
+/**
+ * Atualiza o status de um aluno (ativo, transferido ou desistente)
+ * Endpoint: PUT /secretaria/alunos/:id
+ */
+export const updateAlunoStatus = async (
+  id: string,
+  data: Partial<AlunoDTO>
+): Promise<AxiosResponse<AlunoDTO>> => api.put(`/secretaria/alunos/${id}`, data);
+
+/* ==========================================================
+   📚 Disciplinas
+========================================================== */
+>>>>>>> feature/prd003-secretary-class-view-refactor
 export interface DisciplinaDTO {
   _id: string;
   nome: string;
   codigo: string;
+<<<<<<< HEAD
   professor?: { _id?: string; nome?: string; email?: string } | null;
   turma?: { _id?: string; nome?: string; ano?: number } | null;
   cargaHoraria: number;
@@ -134,6 +164,18 @@ export const removeTurma = async (
     turmaId: null,
   });
 
+=======
+  cargaHoraria: number;
+  ativo: boolean;
+  professor?: { _id?: string; nome?: string; email?: string } | null;
+  turma?: { _id?: string; nome?: string; ano?: number } | null;
+}
+
+export const getDisciplinas = async (): Promise<
+  AxiosResponse<DisciplinaDTO[]>
+> => api.get("/secretaria/disciplinas");
+
+>>>>>>> feature/prd003-secretary-class-view-refactor
 /* ==========================================================
    📈 Taxas de aprovação
 ========================================================== */

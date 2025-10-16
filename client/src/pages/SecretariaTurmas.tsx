@@ -1,4 +1,5 @@
 // client/src/pages/SecretariaTurmas.tsx
+
 import { useEffect, useState } from "react";
 import { getTurmas } from "@/api/secretaria";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -27,29 +28,29 @@ export default function SecretariaTurmas() {
   if (loading) return <p className="p-6">Carregando turmas...</p>;
 
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold mb-4">Turmas</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {turmas.map((t) => (
-          <Card key={t._id}>
-            <CardHeader>
-              <CardTitle>{t.nome}</CardTitle>
+          <Card key={t._id} className="shadow-md border rounded-xl hover:shadow-lg transition-all duration-200">
+            <CardHeader className="bg-primary/10">
+              <CardTitle className="text-lg font-semibold">{t.nome}</CardTitle>
             </CardHeader>
-            <CardContent>
+
+            <CardContent className="space-y-2 mt-3">
               <p>
                 <strong>Ano:</strong> {t.ano}
               </p>
-              <p>
-                <strong>Professor:</strong> {t.professor?.name ?? t.professor?.email ?? "—"}
-              </p>
+
               <p>
                 <strong>Disciplinas:</strong>{" "}
-                {Array.isArray(t.disciplinas)
+                {Array.isArray(t.disciplinas) && t.disciplinas.length > 0
                   ? t.disciplinas.map((d: { nome: string }) => d.nome).join(", ")
-                  : "—"}
+                  : "Nenhuma disciplina vinculada"}
               </p>
-              <div className="mt-4">
+
+              <div className="pt-3">
                 <Button onClick={() => navigate(`/secretaria/turmas/${t._id}/alunos`)}>
                   Ver Alunos
                 </Button>

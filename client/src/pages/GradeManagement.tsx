@@ -1,4 +1,6 @@
 // client/src/pages/GradeManagement.tsx
+
+
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Student, ClassAnalytics as ClassAnalyticsType, BackendGradeInfo } from '@/types/academic';
@@ -12,8 +14,6 @@ import { useToast } from '@/hooks/useToast';
 import { recalculateStudent, calculateClassAnalytics } from '@/utils/gradeCalculations';
 
 export function GradeManagement() {
-  // ✅ Esta linha já estava correta, mas agora funcionará como esperado 
-  // devido às correções em App.tsx e ProfessorDashboard.tsx.
   const { turmaId, disciplinaId } = useParams<{ turmaId: string; disciplinaId: string }>();
 
   const navigate = useNavigate();
@@ -26,9 +26,9 @@ export function GradeManagement() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const [disciplineName, setDisciplineName] = useState('Carregando...');
-  const [className, setClassName] = useState('');
-  const [academicYear, setAcademicYear] = useState('');
+  const [disciplineName, setDisciplineName] = useState('Disciplina');
+  const [className, setClassName] = useState('Turma');
+  const [academicYear, setAcademicYear] = useState('2025');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,9 +46,7 @@ export function GradeManagement() {
       setLoading(true);
       try {
         console.log('🔄 Fetching grade data for:', { turmaId, disciplinaId });
-        // ✅ Agora os parâmetros estão na ordem correta (turmaId, disciplinaId) para o backend
         const data: BackendGradeInfo[] = await getGradeData(turmaId, disciplinaId);
-        console.log('✅ Grade data received:', data);
 
         const transformed: Student[] = data.map((item, idx) => {
           const s: Student = {
@@ -72,11 +70,6 @@ export function GradeManagement() {
         setStudents(transformed);
         setAnalytics(calculateClassAnalytics(transformed));
 
-        // Placeholder temporário
-        setDisciplineName('Disciplina');
-        setClassName('Turma');
-        setAcademicYear('2025');
-
         console.log(`✅ Loaded ${transformed.length} students`);
       } catch (err) {
         console.error('❌ Error fetching grade data:', err);
@@ -93,7 +86,7 @@ export function GradeManagement() {
     fetchData();
   }, [disciplinaId, turmaId, toast, navigate]);
 
-  // Atualiza um aluno inteiro (compatibilidade antiga)
+  // Atualiza um aluno inteiro (compatibilidade)
   const handleGradeUpdate = useCallback((updatedStudent: Student) => {
     setStudents(prev => {
       const updated = prev.map(s =>
@@ -105,7 +98,7 @@ export function GradeManagement() {
     });
   }, []);
 
-  // Atualiza uma célula (usado na tabela)
+  // Atualiza uma célula
   const handleCellUpdate = async (
     studentId: string,
     field: 'avaliacao1' | 'avaliacao2' | 'avaliacao3' | 'final' | 'pf',
@@ -140,7 +133,6 @@ export function GradeManagement() {
     setSaving(true);
     try {
       console.log('💾 Saving all grades...');
-      // ✅ Ordem mantida: turmaId, disciplinaId
       await saveAllGrades(turmaId, disciplinaId, students);
       setHasUnsavedChanges(false);
       setLastSaved(new Date());
@@ -159,7 +151,7 @@ export function GradeManagement() {
 
   const handleBack = () => navigate('/');
 
-  // --- Renderização ---
+  // --- Render ---
   if (loading) {
     return (
       <div className="space-y-6 pb-16">

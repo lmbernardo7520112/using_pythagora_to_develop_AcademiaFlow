@@ -6,14 +6,12 @@ import { requireUser } from "./middlewares/auth.js";
 import secretariaService from "../services/secretariaService.js";
 
 const router = express.Router();
-
-// ✅ Perfis que podem acessar as rotas da secretaria
 const requireSecretaria = requireUser(["secretaria", "admin", "administrador"]);
 
 console.log("✅ secretariaRoutes.ts carregado com sucesso!");
 
 // ==========================================================
-// 📊 DASHBOARD GERAL E POR TURMA
+// 📊 DASHBOARD
 // ==========================================================
 router.get("/secretaria/dashboard", requireSecretaria, async (_req: Request, res: Response) => {
   try {
@@ -102,37 +100,19 @@ router.get("/secretaria/turmas/:turmaId/alunos", requireSecretaria, async (req: 
   }
 });
 
-router.post("/secretaria/turmas/:turmaId/alunos", requireSecretaria, async (req: Request, res: Response) => {
-  try {
-    const aluno = await secretariaService.createAluno(req.params.turmaId, req.body);
-    return res.status(201).json(aluno);
-  } catch (err: any) {
-    console.error("❌ secretariaRoutes.createAluno:", err);
-    return res.status(400).json({ message: err.message });
-  }
-});
-
+// ✏️ Atualização de status de aluno
 router.put("/secretaria/alunos/:id", requireSecretaria, async (req: Request, res: Response) => {
   try {
-    const aluno = await secretariaService.updateAluno(req.params.id, req.body);
-    return res.status(200).json(aluno);
+    const alunoAtualizado = await secretariaService.updateAluno(req.params.id, req.body);
+    return res.status(200).json(alunoAtualizado);
   } catch (err: any) {
     console.error("❌ secretariaRoutes.updateAluno:", err);
     return res.status(400).json({ message: err.message });
   }
 });
 
-router.delete("/secretaria/alunos/:id", requireSecretaria, async (req: Request, res: Response) => {
-  try {
-    await secretariaService.disableAluno(req.params.id);
-    return res.status(200).json({ message: "Aluno desativado com sucesso" });
-  } catch (err) {
-    console.error("❌ secretariaRoutes.disableAluno:", err);
-    return res.status(500).json({ message: "Erro ao desativar aluno" });
-  }
-});
-
 // ==========================================================
+<<<<<<< HEAD
 // 📚 DISCIPLINAS — novas rotas
 // ==========================================================
 router.get("/secretaria/disciplinas", requireSecretaria, async (_req: Request, res: Response) => {
@@ -169,15 +149,17 @@ router.put("/secretaria/turmas/:turmaId/alunos/manage", requireSecretaria, async
 
 // ==========================================================
 // 📈 TAXAS DE APROVAÇÃO
+=======
+// 📚 DISCIPLINAS
+>>>>>>> feature/prd003-secretary-class-view-refactor
 // ==========================================================
-router.get("/secretaria/taxas-aprovacao", requireSecretaria, async (req: Request, res: Response) => {
+router.get("/secretaria/disciplinas", requireSecretaria, async (_req: Request, res: Response) => {
   try {
-    const bimestre = req.query.bimestre ? Number(req.query.bimestre) : undefined;
-    const data = await secretariaService.getTaxasAprovacao(bimestre);
-    return res.status(200).json(data);
+    const disciplinas = await secretariaService.listDisciplinas();
+    return res.status(200).json(disciplinas);
   } catch (err) {
-    console.error("❌ secretariaRoutes.getTaxasAprovacao:", err);
-    return res.status(500).json({ message: "Erro ao calcular taxas de aprovação" });
+    console.error("❌ secretariaRoutes.listDisciplinas:", err);
+    return res.status(500).json({ message: "Erro ao listar disciplinas" });
   }
 });
 

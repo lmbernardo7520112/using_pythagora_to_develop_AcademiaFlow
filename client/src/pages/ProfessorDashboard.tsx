@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getProfessorDisciplines } from '@/api/disciplines';
 import { useAuth } from '@/contexts/AuthContext';
-import { GraduationCap, BookOpenText, Users, Mail } from 'lucide-react';
+import { GraduationCap, BookOpenText, Users, Mail, CalendarDays } from 'lucide-react'; 
 import { useToast } from '@/hooks/useToast';
 import { Link } from 'react-router-dom';
 import { ProfessorDisciplineWithTurmas } from '@/types/academic';
@@ -11,14 +11,25 @@ import { DisciplineCardSkeleton } from '@/components/dashboard/DisciplineCardSke
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface DisciplineCardProps {
   discipline: ProfessorDisciplineWithTurmas;
 }
 
+// ==========================================================
+// 🔹 Card visual e funcional de disciplina
+// ==========================================================
 function DisciplineCard({ discipline }: DisciplineCardProps) {
   return (
-    <Card className="w-full max-w-sm mx-auto shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border-2 border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden transform hover:scale-105 flex flex-col">
+    <Card className="
+      w-full max-w-sm mx-auto 
+      shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out 
+      border-2 border-gray-200 dark:border-gray-800 
+      rounded-xl overflow-hidden 
+      transform hover:scale-105
+      flex flex-col
+    ">
       <CardHeader className="bg-gradient-to-br from-blue-600 to-purple-700 text-white p-6 pb-4 relative">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -30,8 +41,7 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
           <GraduationCap className="h-8 w-8 text-white/70" />
         </div>
         <CardDescription className="text-blue-100 text-sm mt-2 flex items-center gap-1">
-          <Mail className="h-4 w-4 mr-1 inline-block" />
-          Professor: <span className="font-semibold">{discipline.professorName}</span>
+          <Mail className="h-4 w-4 mr-1 inline-block" /> Professor: <span className="font-semibold">{discipline.professorName}</span>
         </CardDescription>
         <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20"></div>
       </CardHeader>
@@ -45,12 +55,18 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
           {discipline.turmas.length > 0 ? (
             <ul className="space-y-3">
               {discipline.turmas.map((turma) => (
-                <li key={turma._id} className="flex items-center justify-between group">
+                <li
+                  key={turma._id}
+                  className="flex items-center justify-between group"
+                >
                   <span className="text-gray-700 dark:text-gray-300 text-base font-medium">
                     {turma.nome} ({turma.ano})
                   </span>
-                  {/* ✅ Corrigido: rota hierárquica correta dentro de /professor */}
-                  <Link to={`/professor/grades/${turma._id}/${discipline._id}`}>
+                  <Link
+                    // ✅ CORREÇÃO: Ordem dos IDs para turmaId primeiro, disciplinaId segundo,
+                    // alinhando com a nova rota em App.tsx e a expectativa do backend.
+                    to={`/grades/${turma._id}/${discipline._id}`} 
+                  >
                     <Button
                       variant="ghost"
                       size="sm"
@@ -78,8 +94,11 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
   );
 }
 
+
 export function ProfessorDashboard() {
-  const [professorDisciplines, setProfessorDisciplines] = useState<ProfessorDisciplineWithTurmas[]>([]);
+  const [professorDisciplines, setProfessorDisciplines] = useState<
+    ProfessorDisciplineWithTurmas[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
   const { toast } = useToast();
@@ -87,27 +106,30 @@ export function ProfessorDashboard() {
   useEffect(() => {
     const fetchDisciplines = async () => {
       try {
-        console.log('Fetching professor disciplines...');
+        console.log("Fetching professor disciplines...");
         const response = await getProfessorDisciplines();
 
         if (Array.isArray(response.data)) {
-          setProfessorDisciplines(response.data);
-          console.log('Disciplines loaded:', response.data.length);
+            setProfessorDisciplines(response.data);
+            console.log('Disciplines loaded:', response.data.length);
         } else {
-          console.error('API response format unexpected:', response);
-          toast({
-            title: 'Erro',
-            description: 'Formato de resposta da API de disciplinas inesperado.',
-            variant: 'destructive',
-          });
-          setProfessorDisciplines([]);
+            console.error('API response format unexpected:', response);
+            toast({
+                title: 'Erro',
+                description: 'Formato de resposta da API de disciplinas inesperado.',
+                variant: 'destructive',
+            });
+            setProfessorDisciplines([]);
         }
       } catch (error: unknown) {
-        console.error('Error fetching disciplines:', error);
+        console.error("Error fetching disciplines:", error);
         toast({
-          title: 'Erro',
-          description: error instanceof Error ? error.message : 'Erro ao carregar disciplinas',
-          variant: 'destructive',
+          title: "Erro",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Erro ao carregar disciplinas",
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -117,22 +139,25 @@ export function ProfessorDashboard() {
     fetchDisciplines();
   }, [toast]);
 
-  const totalTurmas = professorDisciplines.reduce((acc, discipline) => acc + discipline.turmas.length, 0);
+  const totalTurmas = professorDisciplines.reduce(
+    (acc, discipline) => acc + discipline.turmas.length,
+    0
+  );
 
   return (
     <div className="space-y-6 pb-16">
+      {/* Cabeçalho */}
       <div className="flex items-center gap-3">
         <div className="p-3 bg-primary/10 rounded-lg">
           <GraduationCap className="h-8 w-8 text-primary" />
         </div>
         <div>
           <h1 className="text-3xl font-bold">Dashboard do Professor</h1>
-          <p className="text-muted-foreground">
-            Bem-vindo, {currentUser?.email || 'Professor'}
-          </p>
+          <p className="text-muted-foreground">Bem-vindo, {currentUser?.email || 'Professor'}</p>
         </div>
       </div>
 
+      {/* Conteúdo */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (

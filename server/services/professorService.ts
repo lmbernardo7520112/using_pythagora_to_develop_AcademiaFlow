@@ -1,12 +1,10 @@
 // server/services/professorService.ts
 
-
-import { HydratedDocument, Types } from 'mongoose';
-import { IDisciplina } from '../models/Disciplina.js';
-import { ITurma } from '../models/Turma.js'; // Importa ITurma
-import Turma from '../models/Turma.js';
-import { IUser } from '../models/User.js';
-import User from '../models/User.js'
+import { Types } from "mongoose";
+import { IDisciplina } from "../models/Disciplina.js";
+import { ITurma } from "../models/Turma.js";
+import Turma from "../models/Turma.js";
+import User from "../models/User.js";
 
 interface ProfessorDiscipline {
   _id: string;
@@ -17,60 +15,88 @@ interface ProfessorDiscipline {
   turmas: {
     _id: string;
     nome: string;
-    ano: number; // ✅ Certifique-se que esta interface está correta
+    ano: number;
   }[];
 }
 
-export const getDisciplinasByProfessor = async (professorId: string): Promise<ProfessorDiscipline[]> => {
+/**
+ * 🔹 Busca disciplinas atribuídas ao professor autenticado,
+ * garantindo que apenas aquelas com `professor: <professorId>` sejam incluídas.
+ */
+export const getDisciplinasByProfessor = async (
+  professorId: string
+): Promise<ProfessorDiscipline[]> => {
   try {
-    // Definimos uma interface auxiliar para o tipo do documento de Turma com disciplinas populadas
-    // e o formato simplificado do .lean()
-    interface TurmaWithPopulatedDisciplines extends Omit<ITurma, 'disciplinas'> {
-      _id: Types.ObjectId;
-      disciplinas: (IDisciplina & { _id: Types.ObjectId })[];
-      // O campo 'ano' já está em ITurma e não foi omitido, então ele estará presente
-      // no objeto 'turma' após o .lean().
+    if (!Types.ObjectId.isValid(professorId)) {
+      throw new Error(`Invalid professorId: ${professorId}`);
     }
 
-    // Busque o nome do professor uma única vez
+    // ✅ Busca o professor no banco (User)
     const professor = await User.findById(professorId).lean();
     if (!professor) {
-      throw new Error('Professor not found.');
+      throw new Error("Professor not found.");
     }
-    const professorName = professor.email; // Ou professor.name, dependendo do seu User model
 
-    const turmasDoProfessor = await Turma.find({ professor: professorId })
-      .populate('disciplinas')
-      .lean<TurmaWithPopulatedDisciplines[]>(); // Garante que 'turma.ano' está disponível aqui
+    const professorName = professor.email;
+
+    // ✅ Busca turmas vinculadas ao professor
+    const turmasDoProfessor = await Turma.find({
+      professor: new Types.ObjectId(professorId),
+    })
+      .populate({
+        path: "disciplinas",
+        select: "_id nome codigo professor",
+        match: { professor: new Types.ObjectId(professorId) },
+      })
+      .select("_id nome ano disciplinas professor")
+      .lean();
 
     const disciplinasMap = new Map<string, ProfessorDiscipline>();
 
     for (const turma of turmasDoProfessor) {
-      for (const disciplina of turma.disciplinas) {
-        const disciplinaId = disciplina._id.toString();
+      // Aqui o TypeScript ainda entende como ObjectId[], então precisamos converter de forma segura
+      const disciplinasPopuladas = (turma.disciplinas ?? []) as unknown as IDisciplina[];
+
+      for (const d of disciplinasPopuladas) {
+        if (!d || typeof d !== "object" || !d._id) continue;
+
+        const disciplinaId =
+          typeof d._id === "object"
+            ? (d._id as Types.ObjectId).toString()
+            : (d._id as string);
+
+        const profId =
+          typeof d.professor === "object"
+            ? (d.professor as Types.ObjectId).toString()
+            : (d.professor as string);
+
+        if (profId !== professorId) continue;
 
         if (!disciplinasMap.has(disciplinaId)) {
           disciplinasMap.set(disciplinaId, {
             _id: disciplinaId,
-            nome: disciplina.nome,
-            codigo: disciplina.codigo,
-            professorId: professorId,
-            professorName: professorName,
+            nome: d.nome,
+            codigo: d.codigo,
+            professorId,
+            professorName,
             turmas: [],
           });
         }
-        // Adiciona a turma atual à lista de turmas da disciplina, INCLUINDO O ANO
+
         disciplinasMap.get(disciplinaId)?.turmas.push({
-          _id: turma._id.toString(),
+          _id:
+            typeof turma._id === "object"
+              ? (turma._id as Types.ObjectId).toString()
+              : (turma._id as string),
           nome: turma.nome,
-          ano: turma.ano, // ✅ ADICIONADO AQUI: Pegue o 'ano' do objeto 'turma' (que vem do DB)
+          ano: turma.ano,
         });
       }
     }
 
     return Array.from(disciplinasMap.values());
   } catch (error) {
-    console.error('Error fetching disciplines by professor:', error);
-    throw new Error('Could not retrieve disciplines for the professor.');
+    console.error("❌ Error fetching disciplines by professor:", error);
+    throw new Error("Could not retrieve disciplines for the professor.");
   }
 };
