@@ -112,7 +112,6 @@ router.put("/secretaria/alunos/:id", requireSecretaria, async (req: Request, res
 });
 
 // ==========================================================
-<<<<<<< HEAD
 // 📚 DISCIPLINAS — novas rotas
 // ==========================================================
 router.get("/secretaria/disciplinas", requireSecretaria, async (_req: Request, res: Response) => {
@@ -149,9 +148,6 @@ router.put("/secretaria/turmas/:turmaId/alunos/manage", requireSecretaria, async
 
 // ==========================================================
 // 📈 TAXAS DE APROVAÇÃO
-=======
-// 📚 DISCIPLINAS
->>>>>>> feature/prd003-secretary-class-view-refactor
 // ==========================================================
 router.get("/secretaria/disciplinas", requireSecretaria, async (_req: Request, res: Response) => {
   try {

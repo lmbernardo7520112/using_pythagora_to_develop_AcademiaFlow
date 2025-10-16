@@ -13,13 +13,16 @@ import { BlankPage } from "./pages/BlankPage";
 import { ProfessorDashboard } from "./pages/ProfessorDashboard";
 import { GradeManagement } from "./pages/GradeManagement";
 
+// ✅ Fluxos da Secretaria
 import SecretariaDashboard from "./pages/SecretariaDashboard";
 import SecretariaTurmas from "./pages/SecretariaTurmas";
 import SecretariaAlunos from "./pages/SecretariaAlunos";
 import SecretariaRelatorios from "./pages/SecretariaRelatorios";
-import { SecretariaDisciplinas } from "./pages/SecretariaDisciplinas";
 
+// ✅ Redirecionamento automático por role
 import { RoleRedirect } from "./components/RoleRedirect";
+
+// ✅ Página de acesso negado
 import { Unauthorized } from "./pages/Unauthorized";
 
 function App() {
@@ -28,11 +31,11 @@ function App() {
       <ThemeProvider defaultTheme="light" storageKey="ui-theme">
         <Router>
           <Routes>
-            {/* Rotas públicas */}
+            {/* 🔹 Rotas públicas */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* Redirecionamento inicial */}
+            {/* 🔹 Redirecionamento inicial baseado no papel */}
             <Route
               path="/"
               element={
@@ -42,7 +45,7 @@ function App() {
               }
             />
 
-            {/* Rotas do Professor */}
+            {/* 🔹 Rotas do Professor */}
             <Route
               path="/professor/*"
               element={
@@ -61,7 +64,7 @@ function App() {
               />
             </Route>
 
-            {/* Rotas da Secretaria */}
+            {/* 🔹 Rotas da Secretaria */}
             <Route
               path="/secretaria/*"
               element={
@@ -70,14 +73,26 @@ function App() {
                 </ProtectedRoute>
               }
             >
+              {/* Painel principal */}
               <Route index element={<SecretariaDashboard />} />
+
+              {/* Lista de turmas */}
               <Route path="turmas" element={<SecretariaTurmas />} />
-              <Route path="turmas/:turmaId/alunos" element={<SecretariaAlunos />} />
-              <Route path="disciplinas" element={<SecretariaDisciplinas />} />
+
+              {/* Alunos de uma turma específica */}
+              <Route
+                path="turmas/:turmaId/alunos"
+                element={<SecretariaAlunos />}
+              />
+
+              {/* Relatórios acadêmicos */}
               <Route path="relatorios" element={<SecretariaRelatorios />} />
             </Route>
 
+            {/* 🔹 Página de acesso não autorizado */}
             <Route path="/unauthorized" element={<Unauthorized />} />
+
+            {/* 🔹 Página genérica (404) */}
             <Route path="*" element={<BlankPage />} />
           </Routes>
         </Router>

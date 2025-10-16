@@ -1,6 +1,5 @@
 //client/src/pages/ProfessorDashboard.tsx
 
-// client/src/pages/ProfessorDashboard.tsx
 
 import { useEffect, useState } from "react";
 import { getProfessorDisciplines } from "@/api/disciplines";
@@ -88,7 +87,10 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 transition-colors duration-200 group-hover:underline"
+                      className="
+                        text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 
+                        transition-colors duration-200 group-hover:underline
+                      "
                     >
                       Gerenciar Notas
                     </Button>
