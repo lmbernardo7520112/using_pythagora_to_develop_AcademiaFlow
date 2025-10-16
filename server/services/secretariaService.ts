@@ -1,5 +1,6 @@
 // server/services/secretariaService.ts
 
+// server/services/secretariaService.ts
 
 import mongoose from "mongoose";
 import Turma from "../models/Turma.js";
@@ -7,29 +8,34 @@ import Aluno from "../models/Aluno.js";
 import Disciplina from "../models/Disciplina.js";
 import { getGradesByTurmaAndDisciplina } from "./gradeService.js";
 
+/**
+ * 🔄 Normaliza status do aluno garantindo exclusividade entre:
+ * Ativo, Transferido e Abandono (Evadido).
+ */
 function normalizeAlunoStatus(
   current: any,
-  patch: Partial<{ ativo: boolean; transferido: boolean; desistente: boolean }>
+  patch: Partial<{ ativo: boolean; transferido: boolean; abandono: boolean }>
 ) {
   const out = {
     ativo: current?.ativo ?? true,
     transferido: current?.transferido ?? false,
-    desistente: current?.desistente ?? false,
+    abandono: current?.abandono ?? false,
   };
 
   if (typeof patch.ativo === "boolean") out.ativo = patch.ativo;
   if (typeof patch.transferido === "boolean") out.transferido = patch.transferido;
-  if (typeof patch.desistente === "boolean") out.desistente = patch.desistente;
+  if (typeof patch.abandono === "boolean") out.abandono = patch.abandono;
 
+  // Exclusividade entre estados
   if (out.transferido) {
-    out.desistente = false;
+    out.abandono = false;
     out.ativo = false;
-  } else if (out.desistente) {
+  } else if (out.abandono) {
     out.transferido = false;
     out.ativo = false;
   } else if (out.ativo) {
     out.transferido = false;
-    out.desistente = false;
+    out.abandono = false;
   }
 
   return out;
@@ -47,15 +53,13 @@ const secretariaService = {
         .populate("disciplinas", "nome codigo")
         .lean();
 
-      if (!turmas || turmas.length === 0) return [];
-
       return turmas.map((t: any) => ({
         _id: t._id.toString(),
         nome: t.nome ?? "(Sem nome)",
         ano: t.ano ?? new Date().getFullYear(),
         professor: t.professor ?? null,
-        disciplinas: Array.isArray(t.disciplinas) ? t.disciplinas : [],
-        alunos: Array.isArray(t.alunos) ? t.alunos : [],
+        disciplinas: t.disciplinas ?? [],
+        alunos: t.alunos ?? [],
         ativo: t.ativo !== false,
       }));
     } catch (error) {
@@ -70,9 +74,8 @@ const secretariaService = {
       const turma = await Turma.findById(id)
         .populate("professor", "name email")
         .populate("disciplinas", "nome codigo")
-        .populate("alunos", "nome matricula email ativo transferido desistente")
+        .populate("alunos", "nome matricula email ativo transferido abandono")
         .lean();
-
       return turma ?? null;
     } catch (error) {
       console.error("❌ secretariaService.getTurmaById:", error);
@@ -80,56 +83,34 @@ const secretariaService = {
     }
   },
 
-  async createTurma(data: any) {
+  async updateAlunosInTurma(turmaId: string, alunosIds: string[]) {
     try {
-      if (!data.nome || !data.ano || !data.professor || !data.disciplinas) {
-        throw new Error("Campos obrigatórios: nome, ano, professor, disciplinas");
-      }
+      if (!mongoose.Types.ObjectId.isValid(turmaId))
+        throw new Error("ID de turma inválido");
 
-      const exists = await Turma.findOne({ nome: data.nome, ano: data.ano });
-      if (exists) throw new Error("Já existe turma com mesmo nome e ano");
-
-      const nova = new Turma({
-        nome: data.nome,
-        ano: data.ano,
-        professor: data.professor,
-        disciplinas: data.disciplinas,
-        alunos: [],
-        ativo: true,
-      });
-
-      return await nova.save();
-    } catch (error) {
-      console.error("❌ secretariaService.createTurma:", error);
-      throw new Error("Erro ao criar turma");
-    }
-  },
-
-  async updateTurma(id: string, data: any) {
-    try {
-      if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
-      const updated = await Turma.findByIdAndUpdate(id, data, { new: true });
-      if (!updated) throw new Error("Turma não encontrada");
-      return updated;
-    } catch (error) {
-      console.error("❌ secretariaService.updateTurma:", error);
-      throw new Error("Erro ao atualizar turma");
-    }
-  },
-
-  async disableTurma(id: string) {
-    try {
-      if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
-      const turma = await Turma.findById(id);
+      const turma = await Turma.findById(turmaId);
       if (!turma) throw new Error("Turma não encontrada");
 
-      turma.ativo = false;
+      // Atualiza a lista de alunos da turma
+      turma.alunos = alunosIds.map((id) => new mongoose.Types.ObjectId(id));
       await turma.save();
 
-      await Aluno.updateMany({ turma: id }, { $set: { ativo: false } }, { strict: false });
+      // Atualiza o campo 'turma' nos alunos
+      await Aluno.updateMany(
+        { _id: { $in: alunosIds } },
+        { $set: { turma: turma._id } }
+      );
+
+      const turmaAtualizada = await Turma.findById(turmaId)
+        .populate("professor", "nome email")
+        .populate("disciplinas", "nome codigo")
+        .populate("alunos", "nome matricula email ativo transferido abandono")
+        .lean();
+
+      return turmaAtualizada;
     } catch (error) {
-      console.error("❌ secretariaService.disableTurma:", error);
-      throw new Error("Erro ao desativar turma");
+      console.error("❌ secretariaService.updateAlunosInTurma:", error);
+      throw new Error("Erro ao atualizar alunos na turma");
     }
   },
 
@@ -138,21 +119,99 @@ const secretariaService = {
   // ==========================================================
 
   async listAlunosByTurma(turmaId: string) {
+    if (!mongoose.Types.ObjectId.isValid(turmaId)) throw new Error("ID inválido");
+    return await Aluno.find({ turma: turmaId })
+      .select("nome matricula email ativo transferido abandono turma")
+      .sort({ nome: 1 })
+      .lean();
+  },
+
+  async updateAluno(id: string, data: any) {
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("ID inválido");
+
+    const current = await Aluno.findById(id).lean();
+    if (!current) throw new Error("Aluno não encontrado");
+
+    const normalized = normalizeAlunoStatus(current, {
+      ativo: data.ativo,
+      transferido: data.transferido,
+      abandono: data.abandono,
+    });
+
+    await Aluno.updateOne(
+      { _id: id },
+      {
+        $set: {
+          nome: data.nome ?? current.nome,
+          email: data.email ?? current.email,
+          ativo: normalized.ativo,
+          transferido: normalized.transferido,
+          abandono: normalized.abandono,
+        },
+      }
+    );
+
+    return await Aluno.findById(id)
+      .select("nome matricula email ativo transferido abandono turma")
+      .lean();
+  },
+
+  // ==========================================================
+  // 📊 DASHBOARD
+  // ==========================================================
+
+  async getDashboardGeral() {
+    try {
+      const totalTurmas = await Turma.countDocuments({ ativo: true });
+      const totalAlunos = await Aluno.countDocuments();
+      const ativos = await Aluno.countDocuments({ ativo: true });
+      const transferidos = await Aluno.countDocuments({ transferido: true });
+      const abandonos = await Aluno.countDocuments({ abandono: true });
+
+      // Compatibilidade retroativa
+      const desistentes = abandonos;
+
+      return {
+        totalTurmas,
+        totalAlunos,
+        ativos,
+        transferidos,
+        desistentes,
+        abandonos,
+      };
+    } catch (error) {
+      console.error("❌ secretariaService.getDashboardGeral:", error);
+      throw new Error("Erro ao gerar dashboard geral");
+    }
+  },
+
+  async getDashboardTurma(turmaId: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(turmaId)) throw new Error("ID inválido");
-      return await Aluno.find({ turma: turmaId })
-        .select("nome matricula email ativo transferido desistente turma")
-        .sort({ nome: 1 })
+
+      const turma = await Turma.findById(turmaId)
+        .populate("alunos", "ativo transferido abandono")
         .lean();
+
+      if (!turma) throw new Error("Turma não encontrada");
+
+      const alunos = turma.alunos as any[];
+      const total = alunos.length;
+      const ativos = alunos.filter((a) => a.ativo).length;
+      const transferidos = alunos.filter((a) => a.transferido).length;
+      const abandonos = alunos.filter((a) => a.abandono).length;
+
+      return { turma: turma.nome, total, ativos, transferidos, abandonos };
     } catch (error) {
-      console.error("❌ secretariaService.listAlunosByTurma:", error);
-      throw new Error("Erro ao listar alunos");
+      console.error("❌ secretariaService.getDashboardTurma:", error);
+      throw new Error("Erro ao gerar dashboard da turma");
     }
   },
 
   // ==========================================================
-  // 📚 DISCIPLINAS (corrigido e tipado)
+  // 📚 DISCIPLINAS
   // ==========================================================
+
   async listDisciplinas() {
     try {
       const disciplinas = await Disciplina.find()
@@ -160,8 +219,6 @@ const secretariaService = {
         .populate("turma", "nome ano")
         .sort({ nome: 1 })
         .lean();
-
-      if (!disciplinas || disciplinas.length === 0) return [];
 
       return disciplinas.map((d: any) => ({
         _id: d._id.toString(),
@@ -171,23 +228,68 @@ const secretariaService = {
         ativo: d.ativo !== false,
         professor: d.professor
           ? {
-              _id: d.professor._id?.toString?.() ?? null,
-              nome: d.professor.nome ?? "",
-              email: d.professor.email ?? "",
-              role: d.professor.role ?? "professor",
+              _id: d.professor._id?.toString?.(),
+              nome: d.professor.nome,
+              email: d.professor.email,
             }
           : null,
         turma: d.turma
           ? {
-              _id: d.turma._id?.toString?.() ?? null,
-              nome: d.turma.nome ?? "",
-              ano: d.turma.ano ?? new Date().getFullYear(),
+              _id: d.turma._id?.toString?.(),
+              nome: d.turma.nome,
+              ano: d.turma.ano,
             }
           : null,
       }));
     } catch (error) {
       console.error("❌ secretariaService.listDisciplinas:", error);
       throw new Error("Erro ao listar disciplinas");
+    }
+  },
+
+  // ==========================================================
+  // 🔗 ATRIBUIÇÃO DE PROFESSORES E TURMAS À DISCIPLINA
+  // ==========================================================
+
+  async assignProfessorToDisciplina(disciplinaId: string, professorId: string | null) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(disciplinaId))
+        throw new Error("ID de disciplina inválido");
+
+      const disciplina = await Disciplina.findById(disciplinaId);
+      if (!disciplina) throw new Error("Disciplina não encontrada");
+
+      disciplina.professor = professorId ? new mongoose.Types.ObjectId(professorId) : null;
+      await disciplina.save();
+
+      return await Disciplina.findById(disciplinaId)
+        .populate("professor", "nome email")
+        .populate("turma", "nome ano")
+        .lean();
+    } catch (error) {
+      console.error("❌ secretariaService.assignProfessorToDisciplina:", error);
+      throw new Error("Erro ao atribuir professor à disciplina");
+    }
+  },
+
+  async assignTurmaToDisciplina(disciplinaId: string, turmaId: string | null) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(disciplinaId))
+        throw new Error("ID de disciplina inválido");
+
+      const disciplina = await Disciplina.findById(disciplinaId);
+      if (!disciplina) throw new Error("Disciplina não encontrada");
+
+      disciplina.turma = turmaId ? new mongoose.Types.ObjectId(turmaId) : null;
+      await disciplina.save();
+
+      return await Disciplina.findById(disciplinaId)
+        .populate("professor", "nome email")
+        .populate("turma", "nome ano")
+        .lean();
+    } catch (error) {
+      console.error("❌ secretariaService.assignTurmaToDisciplina:", error);
+      throw new Error("Erro ao vincular turma à disciplina");
     }
   },
 };

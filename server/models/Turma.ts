@@ -1,9 +1,7 @@
 // server/models/Turma.ts
 
 
-// ✅ Importa o modelo de disciplina (plural) — o tsx exige extensão exata e nome correto
-import "./Disciplina.ts";
-
+import "./Disciplina.js";
 import mongoose, { Document, Schema, Types, Model } from "mongoose";
 
 export interface ITurma extends Document {
@@ -41,8 +39,7 @@ const TurmaSchema = new Schema<ITurma>(
     disciplinas: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Disciplina", // ⚙️ o nome deve coincidir com o modelo exportado acima
-        required: false,
+        ref: "Disciplina",
       },
     ],
     alunos: [
@@ -75,25 +72,24 @@ const TurmaSchema = new Schema<ITurma>(
     },
     toJSON: {
       virtuals: true,
-      transform: (_doc, ret) => {
-        const r = ret as any;
-        delete r.__v;
-        return r;
+      transform: (_doc, ret: Record<string, any>) => {
+        if ("__v" in ret) delete (ret as any).__v;
+        return ret;
       },
     },
   }
 );
 
-// 🔹 Índices
+// Índices
 TurmaSchema.index({ nome: 1, ano: 1 }, { unique: true });
 TurmaSchema.index({ ano: -1 });
 
-// 🔹 Virtual
+// Virtual: número de alunos
 TurmaSchema.virtual("qtdAlunos").get(function (this: ITurma) {
   return this.alunos?.length || 0;
 });
 
-// 🔹 Hook automático
+// Hook automático
 TurmaSchema.pre("save", function (next) {
   this.atualizadoEm = new Date();
   next();

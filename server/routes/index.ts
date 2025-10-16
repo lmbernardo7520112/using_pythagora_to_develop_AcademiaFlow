@@ -1,8 +1,6 @@
 // server/routes/index.ts
 
 
-// server/routes/index.ts
-
 import express from "express";
 import cors from "cors";
 

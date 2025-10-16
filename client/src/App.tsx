@@ -24,6 +24,7 @@ import { RoleRedirect } from "./components/RoleRedirect";
 
 // ✅ Página de acesso negado
 import { Unauthorized } from "./pages/Unauthorized";
+import { SecretariaDisciplinas } from "./pages/SecretariaDisciplinas";
 
 function App() {
   return (
@@ -79,6 +80,8 @@ function App() {
               {/* Lista de turmas */}
               <Route path="turmas" element={<SecretariaTurmas />} />
 
+              <Route path="disciplinas" element={<SecretariaDisciplinas />} />
+              
               {/* Alunos de uma turma específica */}
               <Route
                 path="turmas/:turmaId/alunos"

@@ -57,33 +57,15 @@ router.get("/secretaria/turmas/:id", requireSecretaria, async (req: Request, res
   }
 });
 
-router.post("/secretaria/turmas", requireSecretaria, async (req: Request, res: Response) => {
+router.put("/secretaria/turmas/:turmaId/alunos/manage", requireSecretaria, async (req: Request, res: Response) => {
   try {
-    const nova = await secretariaService.createTurma(req.body);
-    return res.status(201).json(nova);
-  } catch (err: any) {
-    console.error("❌ secretariaRoutes.createTurma:", err);
-    return res.status(400).json({ message: err.message });
-  }
-});
-
-router.put("/secretaria/turmas/:id", requireSecretaria, async (req: Request, res: Response) => {
-  try {
-    const updated = await secretariaService.updateTurma(req.params.id, req.body);
-    return res.status(200).json(updated);
-  } catch (err: any) {
-    console.error("❌ secretariaRoutes.updateTurma:", err);
-    return res.status(400).json({ message: err.message });
-  }
-});
-
-router.delete("/secretaria/turmas/:id", requireSecretaria, async (req: Request, res: Response) => {
-  try {
-    await secretariaService.disableTurma(req.params.id);
-    return res.status(200).json({ message: "Turma desativada com sucesso" });
+    const { turmaId } = req.params;
+    const { alunosIds } = req.body;
+    const turmaAtualizada = await secretariaService.updateAlunosInTurma(turmaId, alunosIds);
+    return res.status(200).json(turmaAtualizada);
   } catch (err) {
-    console.error("❌ secretariaRoutes.disableTurma:", err);
-    return res.status(500).json({ message: "Erro ao desativar turma" });
+    console.error("❌ secretariaRoutes.updateAlunosInTurma:", err);
+    return res.status(500).json({ message: "Erro ao atualizar alunos na turma" });
   }
 });
 
@@ -100,7 +82,6 @@ router.get("/secretaria/turmas/:turmaId/alunos", requireSecretaria, async (req: 
   }
 });
 
-// ✏️ Atualização de status de aluno
 router.put("/secretaria/alunos/:id", requireSecretaria, async (req: Request, res: Response) => {
   try {
     const alunoAtualizado = await secretariaService.updateAluno(req.params.id, req.body);
@@ -112,7 +93,7 @@ router.put("/secretaria/alunos/:id", requireSecretaria, async (req: Request, res
 });
 
 // ==========================================================
-// 📚 DISCIPLINAS — novas rotas
+// 📚 DISCIPLINAS
 // ==========================================================
 router.get("/secretaria/disciplinas", requireSecretaria, async (_req: Request, res: Response) => {
   try {
@@ -134,28 +115,13 @@ router.put("/secretaria/disciplinas/:id/professor", requireSecretaria, async (re
   }
 });
 
-router.put("/secretaria/turmas/:turmaId/alunos/manage", requireSecretaria, async (req: Request, res: Response) => {
+router.put("/secretaria/disciplinas/:id/turma", requireSecretaria, async (req: Request, res: Response) => {
   try {
-    const { turmaId } = req.params;
-    const { alunosIds } = req.body;
-    const turma = await secretariaService.updateAlunosInTurma(turmaId, alunosIds);
-    return res.status(200).json(turma);
+    const updated = await secretariaService.assignTurmaToDisciplina(req.params.id, req.body.turmaId);
+    return res.status(200).json(updated);
   } catch (err) {
-    console.error("❌ secretariaRoutes.updateAlunosInTurma:", err);
-    return res.status(500).json({ message: "Erro ao atualizar alunos na turma" });
-  }
-});
-
-// ==========================================================
-// 📈 TAXAS DE APROVAÇÃO
-// ==========================================================
-router.get("/secretaria/disciplinas", requireSecretaria, async (_req: Request, res: Response) => {
-  try {
-    const disciplinas = await secretariaService.listDisciplinas();
-    return res.status(200).json(disciplinas);
-  } catch (err) {
-    console.error("❌ secretariaRoutes.listDisciplinas:", err);
-    return res.status(500).json({ message: "Erro ao listar disciplinas" });
+    console.error("❌ secretariaRoutes.assignTurmaToDisciplina:", err);
+    return res.status(500).json({ message: "Erro ao vincular turma à disciplina" });
   }
 });
 

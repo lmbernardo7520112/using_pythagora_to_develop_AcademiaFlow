@@ -1,6 +1,5 @@
 // client/src/api/secretaria.ts
 
-
 import api from "./api";
 import { AxiosResponse } from "axios";
 
@@ -26,7 +25,7 @@ export interface AlunoDTO {
   turma: string;
   ativo: boolean;
   transferido?: boolean;
-  desistente?: boolean;
+  abandono?: boolean; // substitui desistente
 }
 
 export interface DashboardGeralDTO {
@@ -86,12 +85,16 @@ export const getAlunosByTurma = async (
 
 export const updateAlunoStatus = async (
   alunoId: string,
-  payload: { ativo?: boolean; transferido?: boolean; desistente?: boolean }
+  payload: {
+    ativo?: boolean;
+    transferido?: boolean;
+    abandono?: boolean;
+  }
 ): Promise<AxiosResponse<AlunoDTO>> =>
   api.put(`/secretaria/alunos/${alunoId}`, payload);
 
 /* ==========================================================
-   📚 Disciplinas (Novas funcionalidades)
+   📚 Disciplinas
 ========================================================== */
 
 export interface DisciplinaDTO {
@@ -140,7 +143,7 @@ export const removeTurma = async (
 export const getTaxasAprovacao = async (
   bimestre?: number
 ): Promise<AxiosResponse<TaxasAprovacaoDTO>> =>
-  api.get("/secretaria/taxas-aprovacao", {
+  api.get("/secretaria/relatorios/taxas", {
     params: bimestre ? { bimestre } : {},
   });
 

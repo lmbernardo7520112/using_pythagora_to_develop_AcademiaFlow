@@ -38,6 +38,9 @@ export function SecretariaDisciplinas() {
 
   useEffect(() => {
     loadData();
+    const handleUpdate = () => loadData();
+    window.addEventListener("disciplinasUpdate", handleUpdate);
+    return () => window.removeEventListener("disciplinasUpdate", handleUpdate);
   }, []);
 
   function openModal(type: "professor" | "turma", disciplina: DisciplinaDTO) {
@@ -54,26 +57,28 @@ export function SecretariaDisciplinas() {
     if (!selectedDisciplina) return;
     await assignProfessor(selectedDisciplina._id, professorId);
     toast({ title: "Professor atribuído com sucesso" });
-    await loadData();
+    window.dispatchEvent(new Event("disciplinasUpdate"));
+    closeModal();
   }
 
   async function handleAssignTurma(turmaId: string) {
     if (!selectedDisciplina) return;
     await assignTurma(selectedDisciplina._id, turmaId);
     toast({ title: "Turma vinculada com sucesso" });
-    await loadData();
+    window.dispatchEvent(new Event("disciplinasUpdate"));
+    closeModal();
   }
 
   async function handleRemoveProfessor(id: string) {
     await removeProfessor(id);
     toast({ title: "Professor desvinculado" });
-    await loadData();
+    window.dispatchEvent(new Event("disciplinasUpdate"));
   }
 
   async function handleRemoveTurma(id: string) {
     await removeTurma(id);
     toast({ title: "Turma desvinculada" });
-    await loadData();
+    window.dispatchEvent(new Event("disciplinasUpdate"));
   }
 
   return (
@@ -124,7 +129,7 @@ export function SecretariaDisciplinas() {
         ))}
       </div>
 
-      {/* 🔹 Modais avançados */}
+      {/* 🔹 Modais */}
       <ModalAssignProfessor
         open={modalType === "professor"}
         onClose={closeModal}

@@ -26,7 +26,7 @@ interface Aluno {
   email: string;
   ativo: boolean;
   transferido?: boolean;
-  desistente?: boolean;
+  abandono?: boolean; // substitui desistente
 }
 
 export default function SecretariaAlunos() {
@@ -39,10 +39,6 @@ export default function SecretariaAlunos() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const [selectedAluno, setSelectedAluno] = useState<AlunoDTO | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!turmaId) return;
@@ -69,7 +65,7 @@ export default function SecretariaAlunos() {
     fetchData();
   }, [turmaId]);
 
-  // Função para renderizar o status com ícone e cor
+  // Renderiza o status com ícones e cores consistentes
   const renderStatusBadge = (aluno: Aluno) => {
     if (aluno.ativo)
       return (
@@ -83,54 +79,57 @@ export default function SecretariaAlunos() {
           <MoveRight className="w-4 h-4 mr-1" /> Transferido
         </span>
       );
-    if (aluno.desistente)
+    if (aluno.abandono)
       return (
         <span className="flex items-center text-red-500 font-medium">
-          <AlertTriangle className="w-4 h-4 mr-1" /> Desistente
+          <AlertTriangle className="w-4 h-4 mr-1" /> Evadido
         </span>
       );
     return (
       <span className="flex items-center text-gray-500 font-medium">
-        <XCircle className="w-4 h-4 mr-1" /> Abandono
+        <XCircle className="w-4 h-4 mr-1" /> Inativo
       </span>
     );
   };
 
-  // Mapeia o status atual para a opção do dropdown
   const getCurrentStatus = (a: Aluno): string => {
     if (a.ativo) return "ativo";
     if (a.transferido) return "transferido";
-    if (a.desistente) return "desistente";
-    return "abandono";
+    if (a.abandono) return "abandono";
+    return "inativo";
   };
 
-  // Atualiza o status do aluno
   const handleStatusChange = async (alunoId: string, novoStatus: string) => {
     setSavingId(alunoId);
     try {
-      // Define o payload conforme o status escolhido
       const payload =
         novoStatus === "ativo"
-          ? { ativo: true, transferido: false, desistente: false }
+          ? { ativo: true, transferido: false, abandono: false }
           : novoStatus === "transferido"
-          ? { ativo: false, transferido: true, desistente: false }
-          : novoStatus === "desistente"
-          ? { ativo: false, transferido: false, desistente: true }
-          : { ativo: false, transferido: false, desistente: false };
+          ? { ativo: false, transferido: true, abandono: false }
+          : novoStatus === "abandono"
+          ? { ativo: false, transferido: false, abandono: true }
+          : { ativo: false, transferido: false, abandono: false };
 
       await updateAlunoStatus(alunoId, payload);
 
-      // Atualiza o estado local
       setAlunos((prev) =>
-        prev.map((a) =>
-          a._id === alunoId ? { ...a, ...payload } : a
-        )
+        prev.map((a) => (a._id === alunoId ? { ...a, ...payload } : a))
       );
+
+      toast({
+        title: "Status atualizado",
+        description: "O status do aluno foi alterado com sucesso.",
+      });
     } catch (err) {
       console.error("Erro ao atualizar status:", err);
-      alert("❌ Falha ao atualizar o status do aluno.");
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar o status do aluno.",
+        variant: "destructive",
+      });
     } finally {
-      setTimeout(() => setSavingId(null), 1200); // Delay visual
+      setSavingId(null);
     }
   };
 
@@ -189,7 +188,6 @@ export default function SecretariaAlunos() {
                       </div>
                     ) : statusAtual ? (
                       <>
-                        {/* Mostra status atual */}
                         {renderStatusBadge(a)}
                         <select
                           className="border border-border rounded-md px-2 py-1 text-sm mt-2"
@@ -200,8 +198,7 @@ export default function SecretariaAlunos() {
                         >
                           <option value="ativo">Ativo</option>
                           <option value="transferido">Transferido</option>
-                          <option value="desistente">Desistente</option>
-                          <option value="abandono">Abandono</option>
+                          <option value="abandono">Evadido</option>
                         </select>
                       </>
                     ) : null}

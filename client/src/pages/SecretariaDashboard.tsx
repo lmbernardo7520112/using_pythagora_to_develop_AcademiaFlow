@@ -1,7 +1,11 @@
 // client/src/pages/SecretariaDashboard.tsx
 
 import { useEffect, useState } from "react";
-import { getDashboardGeral, getTaxasAprovacao, DashboardGeralDTO as DashboardGeral } from "@/api/secretaria";
+import {
+  getDashboardGeral,
+  getTaxasAprovacao,
+  DashboardGeralDTO as DashboardGeral,
+} from "@/api/secretaria";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function SecretariaDashboard() {
@@ -28,7 +32,8 @@ export default function SecretariaDashboard() {
 
   if (loading) return <p className="p-6">Carregando painel...</p>;
 
-  const inativos = (dash?.transferidos ?? 0) + (dash?.desistentes ?? 0);
+  const inativos =
+    (dash?.transferidos ?? 0) + (dash?.desistentes ?? dash?.abandonos ?? 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -58,7 +63,9 @@ export default function SecretariaDashboard() {
             <CardTitle>Alunos Ativos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-green-600">{dash?.ativos ?? 0}</div>
+            <div className="text-3xl font-semibold text-green-600">
+              {dash?.ativos ?? 0}
+            </div>
           </CardContent>
         </Card>
 
@@ -67,25 +74,20 @@ export default function SecretariaDashboard() {
             <CardTitle>Alunos Transferidos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-yellow-600">{dash?.transferidos ?? 0}</div>
+            <div className="text-3xl font-semibold text-blue-600">
+              {dash?.transferidos ?? 0}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Alunos Desistentes</CardTitle>
+            <CardTitle>Alunos Evadidos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-red-600">{dash?.desistentes ?? 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Nº de Abandonos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold text-rose-600">{dash?.abandonos ?? 0}</div>
+            <div className="text-3xl font-semibold text-red-600">
+              {dash?.abandonos ?? dash?.desistentes ?? 0}
+            </div>
           </CardContent>
         </Card>
 
@@ -94,13 +96,15 @@ export default function SecretariaDashboard() {
             <CardTitle>Alunos Inativos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-rose-600">{inativos}</div>
+            <div className="text-3xl font-semibold text-gray-600">{inativos}</div>
           </CardContent>
         </Card>
       </div>
 
       <section>
-        <h2 className="text-lg font-semibold mt-6 mb-3">Taxas de Aprovação (por turma)</h2>
+        <h2 className="text-lg font-semibold mt-6 mb-3">
+          Taxas de Aprovação (por turma)
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {!taxas || Object.keys(taxas).length === 0 ? (
             <p>Sem dados de taxa por enquanto.</p>
@@ -112,10 +116,12 @@ export default function SecretariaDashboard() {
                 </CardHeader>
                 <CardContent>
                   <p>
-                    <strong>Aprovados:</strong> {info.aprovados}/{info.total} ({info.taxa})
+                    <strong>Aprovados:</strong> {info.aprovados}/{info.total} (
+                    {info.taxa})
                   </p>
-                  <p className="text-sm text-slate-500">Reprovados: {info.reprovados}</p>
-
+                  <p className="text-sm text-slate-500">
+                    Reprovados: {info.reprovados}
+                  </p>
                   {info.taxaBim1 && (
                     <p className="text-sm mt-2">
                       <strong>Taxa Bim1:</strong> {info.taxaBim1.toFixed(2)}%

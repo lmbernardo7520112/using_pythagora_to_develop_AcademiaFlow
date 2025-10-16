@@ -9,14 +9,14 @@ export interface IAluno extends Document {
   turma: mongoose.Types.ObjectId;
   ativo: boolean;
   transferido: boolean;
-  desistente: boolean;
+  abandono: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 /**
- * 🎓 Esquema do Aluno — mantido completo, com validações, auditoria e índices otimizados.
- * Esta versão remove índices duplicados, preservando totalmente as funcionalidades existentes.
+ * 🎓 Esquema do Aluno — atualizado com o campo "abandono" no lugar de "desistente".
+ * Mantém total compatibilidade e integridade dos índices.
  */
 const AlunoSchema = new Schema<IAluno>(
   {
@@ -26,16 +26,16 @@ const AlunoSchema = new Schema<IAluno>(
     turma: { type: Schema.Types.ObjectId, ref: "Turma", required: true },
     ativo: { type: Boolean, default: true },
     transferido: { type: Boolean, default: false },
-    desistente: { type: Boolean, default: false },
+    abandono: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// Índices úteis
+// Índices otimizados
 AlunoSchema.index({ turma: 1, nome: 1 });
 AlunoSchema.index({ ativo: 1 });
 AlunoSchema.index({ transferido: 1 });
-AlunoSchema.index({ desistente: 1 });
+AlunoSchema.index({ abandono: 1 });
 
 const Aluno: Model<IAluno> =
   mongoose.models.Aluno || mongoose.model<IAluno>("Aluno", AlunoSchema);
