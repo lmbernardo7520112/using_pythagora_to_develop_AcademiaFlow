@@ -13,20 +13,12 @@ import { BlankPage } from "./pages/BlankPage";
 import { ProfessorDashboard } from "./pages/ProfessorDashboard";
 import { GradeManagement } from "./pages/GradeManagement";
 
-<<<<<<< HEAD
-=======
-// ✅ Fluxos da Secretaria
->>>>>>> feature/prd003-secretary-class-view-refactor
 import SecretariaDashboard from "./pages/SecretariaDashboard";
 import SecretariaTurmas from "./pages/SecretariaTurmas";
 import SecretariaAlunos from "./pages/SecretariaAlunos";
 import SecretariaRelatorios from "./pages/SecretariaRelatorios";
 import { SecretariaDisciplinas } from "./pages/SecretariaDisciplinas";
 
-<<<<<<< HEAD
-=======
-// ✅ Redirecionamento automático por role
->>>>>>> feature/prd003-secretary-class-view-refactor
 import { RoleRedirect } from "./components/RoleRedirect";
 import { Unauthorized } from "./pages/Unauthorized";
 
