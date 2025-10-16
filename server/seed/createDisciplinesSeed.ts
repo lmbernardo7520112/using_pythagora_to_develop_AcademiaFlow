@@ -1,7 +1,5 @@
 // server/seed/createDisciplinesSeed.ts
 
-// server/seed/createDisciplinesSeed.ts
-
 import mongoose from "mongoose";
 import Disciplina from "../models/Disciplina.js";
 
