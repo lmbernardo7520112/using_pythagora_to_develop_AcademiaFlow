@@ -1,18 +1,33 @@
 //client/src/pages/ProfessorDashboard.tsx
 
-import { useEffect, useState } from 'react';
-import { getProfessorDisciplines } from '@/api/disciplines';
-import { useAuth } from '@/contexts/AuthContext';
-import { GraduationCap, BookOpenText, Users, Mail, CalendarDays } from 'lucide-react'; 
-import { useToast } from '@/hooks/useToast';
-import { Link } from 'react-router-dom';
-import { ProfessorDisciplineWithTurmas } from '@/types/academic';
-import { DisciplineCardSkeleton } from '@/components/dashboard/DisciplineCardSkeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+// client/src/pages/ProfessorDashboard.tsx
 
+import { useEffect, useState } from "react";
+import { getProfessorDisciplines } from "@/api/disciplines";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  GraduationCap,
+  BookOpenText,
+  Users,
+  Mail,
+} from "lucide-react";
+import { useToast } from "@/hooks/useToast";
+import { Link } from "react-router-dom";
+import { ProfessorDisciplineWithTurmas } from "@/types/academic";
+import { DisciplineCardSkeleton } from "@/components/dashboard/DisciplineCardSkeleton";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+
+// ==========================================================
+// 🔹 Tipagem interna do card de disciplina
+// ==========================================================
 interface DisciplineCardProps {
   discipline: ProfessorDisciplineWithTurmas;
 }
@@ -22,14 +37,16 @@ interface DisciplineCardProps {
 // ==========================================================
 function DisciplineCard({ discipline }: DisciplineCardProps) {
   return (
-    <Card className="
-      w-full max-w-sm mx-auto 
-      shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out 
-      border-2 border-gray-200 dark:border-gray-800 
-      rounded-xl overflow-hidden 
-      transform hover:scale-105
-      flex flex-col
-    ">
+    <Card
+      className="
+        w-full max-w-sm mx-auto 
+        shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out 
+        border-2 border-gray-200 dark:border-gray-800 
+        rounded-xl overflow-hidden 
+        transform hover:scale-105
+        flex flex-col
+      "
+    >
       <CardHeader className="bg-gradient-to-br from-blue-600 to-purple-700 text-white p-6 pb-4 relative">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -41,7 +58,8 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
           <GraduationCap className="h-8 w-8 text-white/70" />
         </div>
         <CardDescription className="text-blue-100 text-sm mt-2 flex items-center gap-1">
-          <Mail className="h-4 w-4 mr-1 inline-block" /> Professor: <span className="font-semibold">{discipline.professorName}</span>
+          <Mail className="h-4 w-4 mr-1 inline-block" /> Professor:{" "}
+          <span className="font-semibold">{discipline.professorName}</span>
         </CardDescription>
         <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20"></div>
       </CardHeader>
@@ -62,10 +80,10 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
                   <span className="text-gray-700 dark:text-gray-300 text-base font-medium">
                     {turma.nome} ({turma.ano})
                   </span>
+
+                  {/* ✅ CORREÇÃO: rota agora usa prefixo /professor */}
                   <Link
-                    // ✅ CORREÇÃO: Ordem dos IDs para turmaId primeiro, disciplinaId segundo,
-                    // alinhando com a nova rota em App.tsx e a expectativa do backend.
-                    to={`/grades/${turma._id}/${discipline._id}`} 
+                    to={`/professor/grades/${turma._id}/${discipline._id}`}
                   >
                     <Button
                       variant="ghost"
@@ -94,7 +112,9 @@ function DisciplineCard({ discipline }: DisciplineCardProps) {
   );
 }
 
-
+// ==========================================================
+// 🔹 Componente principal do Dashboard do Professor
+// ==========================================================
 export function ProfessorDashboard() {
   const [professorDisciplines, setProfessorDisciplines] = useState<
     ProfessorDisciplineWithTurmas[]
@@ -110,16 +130,16 @@ export function ProfessorDashboard() {
         const response = await getProfessorDisciplines();
 
         if (Array.isArray(response.data)) {
-            setProfessorDisciplines(response.data);
-            console.log('Disciplines loaded:', response.data.length);
+          setProfessorDisciplines(response.data);
+          console.log("Disciplines loaded:", response.data.length);
         } else {
-            console.error('API response format unexpected:', response);
-            toast({
-                title: 'Erro',
-                description: 'Formato de resposta da API de disciplinas inesperado.',
-                variant: 'destructive',
-            });
-            setProfessorDisciplines([]);
+          console.error("API response format unexpected:", response);
+          toast({
+            title: "Erro",
+            description: "Formato de resposta da API de disciplinas inesperado.",
+            variant: "destructive",
+          });
+          setProfessorDisciplines([]);
         }
       } catch (error: unknown) {
         console.error("Error fetching disciplines:", error);
@@ -153,7 +173,9 @@ export function ProfessorDashboard() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">Dashboard do Professor</h1>
-          <p className="text-muted-foreground">Bem-vindo, {currentUser?.email || 'Professor'}</p>
+          <p className="text-muted-foreground">
+            Bem-vindo, {currentUser?.email || "Professor"}
+          </p>
         </div>
       </div>
 
