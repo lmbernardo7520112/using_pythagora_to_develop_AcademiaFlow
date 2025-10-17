@@ -70,12 +70,13 @@ export function GradeTableRow({ student, onGradeUpdate, studentIndex }: GradeTab
       </td>
 
       <td className="p-3">
+        
         <GradeCell
           value={student.pf ?? null}
-          editable={needsRecovery}
+          editable={true}
           onSave={value => onGradeUpdate(student._id, 'pf', value)}
-          className={!needsRecovery ? 'bg-muted' : ''}
         />
+
       </td>
 
       <td className="p-3 text-center">

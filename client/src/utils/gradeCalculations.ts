@@ -1,13 +1,16 @@
 //client/src/utils/gradeCalculations.ts
 
-/// client/src/utils/gradeCalculations.ts
+// client/src/utils/gradeCalculations.ts
 
 import { Student, ClassAnalytics } from '@/types/academic';
 
 /**
- * Harmonizado com backend:
+ * ✅ Harmonizado com backend:
  * - PASS_THRESHOLD = 6.0
  * - RECOVERY_THRESHOLD = 4.0
+ * 
+ * Inclui atualização automática da Situação Final (SF)
+ * ao preencher o campo PF.
  */
 
 const PASS_THRESHOLD = 6.0;
@@ -15,16 +18,30 @@ const RECOVERY_THRESHOLD = 4.0;
 
 const round2 = (v: number) => Number(v.toFixed(2));
 
-export const calculateNF = (bim1?: number, bim2?: number, bim3?: number, bim4?: number): number | undefined => {
+/**
+ * Calcula NF (nota final) com base nas notas bimestrais.
+ */
+export const calculateNF = (
+  bim1?: number,
+  bim2?: number,
+  bim3?: number,
+  bim4?: number
+): number | undefined => {
   const grades = [bim1, bim2, bim3, bim4].filter((g) => typeof g === 'number') as number[];
   if (grades.length === 0) return undefined;
   return round2(grades.reduce((sum, g) => sum + g, 0) / grades.length);
 };
 
+/**
+ * MG é equivalente à NF (média geral).
+ */
 export const calculateMG = (nf?: number): number | undefined => {
   return nf;
 };
 
+/**
+ * Calcula MF (média final), considerando PF se necessário.
+ */
 export const calculateMF = (mg?: number, pf?: number): number | undefined => {
   if (mg === undefined) return undefined;
   if (mg >= PASS_THRESHOLD) return mg;
@@ -34,25 +51,48 @@ export const calculateMF = (mg?: number, pf?: number): number | undefined => {
   return mg;
 };
 
-export const calculateStatus = (mg?: number): 'Aprovado' | 'Recuperação' | 'Reprovado' | undefined => {
+/**
+ * Determina o status parcial do aluno (antes da PF).
+ */
+export const calculateStatus = (
+  mg?: number
+): 'Aprovado' | 'Recuperação' | 'Reprovado' | undefined => {
   if (mg === undefined) return undefined;
   if (mg >= PASS_THRESHOLD) return 'Aprovado';
   if (mg >= RECOVERY_THRESHOLD) return 'Recuperação';
   return 'Reprovado';
 };
 
-export const calculateFinalStatus = (mf?: number, mg?: number): 'Aprovado' | 'Reprovado' | undefined => {
+/**
+ * Determina a Situação Final (SF) considerando PF.
+ * - Se MG >= 6 → Aprovado direto
+ * - Se MG < 6 e PF lançado → MF decide aprovação
+ * - Se MG < 6 e PF ausente → Aguardando PF
+ */
+export const calculateFinalStatus = (
+  mf?: number,
+  mg?: number,
+  pf?: number
+): 'Aprovado' | 'Reprovado' | 'Aguardando PF' | undefined => {
   if (mg === undefined) return undefined;
   if (mg >= PASS_THRESHOLD) return 'Aprovado';
+  if (pf === undefined || pf === null) return 'Aguardando PF';
   if (mf === undefined) return undefined;
   return mf >= PASS_THRESHOLD ? 'Aprovado' : 'Reprovado';
 };
 
+/**
+ * Indica se o aluno precisa realizar a PF.
+ */
 export const needsRecoveryExam = (mg?: number): boolean => {
   if (mg === undefined) return false;
   return mg < PASS_THRESHOLD && mg >= RECOVERY_THRESHOLD;
 };
 
+/**
+ * Recalcula todas as notas e status de um aluno.
+ * Agora com lógica de atualização automática da Situação Final (SF).
+ */
 export const recalculateStudent = (student: Student): Student => {
   const nf = calculateNF(
     student.bim1 ?? undefined,
@@ -60,10 +100,11 @@ export const recalculateStudent = (student: Student): Student => {
     student.bim3 ?? undefined,
     student.bim4 ?? undefined
   );
+
   const mg = calculateMG(nf);
   const status = calculateStatus(mg);
   const mf = calculateMF(mg, student.pf ?? undefined);
-  const finalStatus = calculateFinalStatus(mf, mg);
+  const finalStatus = calculateFinalStatus(mf, mg, student.pf ?? undefined);
 
   return {
     ...student,
@@ -75,6 +116,9 @@ export const recalculateStudent = (student: Student): Student => {
   };
 };
 
+/**
+ * Calcula métricas e estatísticas de desempenho da turma.
+ */
 export const calculateClassAnalytics = (students: Student[]): ClassAnalytics => {
   const validStudents = students.filter((s) => s.mg !== undefined);
 
@@ -90,7 +134,7 @@ export const calculateClassAnalytics = (students: Student[]): ClassAnalytics => 
     bim4: calculateQuarterAverage(students, 'bim4'),
   };
 
-  // 🔹 Novos campos obrigatórios — adicionados com cálculo correto:
+  // 🔹 Novos campos obrigatórios — medianas por bimestre
   const bimestreMedians = {
     bim1: calculateQuarterMedian(students, 'bim1'),
     bim2: calculateQuarterMedian(students, 'bim2'),
@@ -138,8 +182,13 @@ export const calculateClassAnalytics = (students: Student[]): ClassAnalytics => 
   };
 };
 
-// 🔹 Função auxiliar para média do bimestre
-const calculateQuarterAverage = (students: Student[], quarter: 'bim1' | 'bim2' | 'bim3' | 'bim4'): number => {
+/**
+ * Média do bimestre.
+ */
+const calculateQuarterAverage = (
+  students: Student[],
+  quarter: 'bim1' | 'bim2' | 'bim3' | 'bim4'
+): number => {
   const validGrades = students
     .filter((s) => s[quarter] !== undefined && s[quarter] !== null)
     .map((s) => s[quarter] as number);
@@ -147,8 +196,13 @@ const calculateQuarterAverage = (students: Student[], quarter: 'bim1' | 'bim2' |
   return Number((validGrades.reduce((sum, g) => sum + g, 0) / validGrades.length).toFixed(2));
 };
 
-// 🔹 Função auxiliar para mediana do bimestre
-const calculateQuarterMedian = (students: Student[], quarter: 'bim1' | 'bim2' | 'bim3' | 'bim4'): number => {
+/**
+ * Mediana do bimestre.
+ */
+const calculateQuarterMedian = (
+  students: Student[],
+  quarter: 'bim1' | 'bim2' | 'bim3' | 'bim4'
+): number => {
   const validGrades = students
     .filter((s) => s[quarter] !== undefined && s[quarter] !== null)
     .map((s) => s[quarter] as number)
@@ -160,7 +214,9 @@ const calculateQuarterMedian = (students: Student[], quarter: 'bim1' | 'bim2' | 
     : validGrades[mid];
 };
 
-// 🔹 Função auxiliar para taxa de aprovação por bimestre
+/**
+ * Taxa de aprovação por bimestre.
+ */
 const calculateApprovalRateByQuarter = (
   students: Student[],
   quarter: 'bim1' | 'bim2' | 'bim3' | 'bim4'
@@ -174,6 +230,9 @@ const calculateApprovalRateByQuarter = (
   return Number(((approvedCount / validGrades.length) * 100).toFixed(1));
 };
 
+/**
+ * Validação de nota individual.
+ */
 export const validateGrade = (value: string): { valid: boolean; error?: string } => {
   const num = parseFloat(value);
   if (isNaN(num)) {

@@ -23,7 +23,7 @@ export interface FrontendStudent {
   // Campos de prova final
   pf?: number | null;
   sf?: number | null;
-  finalStatus?: 'Aprovado' | 'Reprovado' | null;
+  finalStatus?: 'Aprovado' | 'Reprovado' | 'Aguardando PF' | null | undefined;
   // Status adicionais alinhados ao Python
   ativo?: boolean;
   transferido?: boolean;
