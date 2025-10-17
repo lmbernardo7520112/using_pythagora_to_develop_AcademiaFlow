@@ -1,7 +1,7 @@
 // server/models/Turma.ts
 
 
-import "./Disciplina.js";
+import "./Disciplina.ts";
 import mongoose, { Document, Schema, Types, Model } from "mongoose";
 
 export interface ITurma extends Document {

@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }

@@ -1,4 +1,4 @@
-//server/models/Alunos.ts
+//server/models/Aluno.ts
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 

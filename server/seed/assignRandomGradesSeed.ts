@@ -1,10 +1,12 @@
 // server/seed/assignRandomGradesSeed.ts
 
 import mongoose from "mongoose";
-import { Nota } from "../models/Nota.js";
-import Aluno from "../models/Aluno.js";
-import Disciplina from "../models/Disciplina.js";
-import Turma from "../models/Turma.js";
+import { Nota } from "../models/Nota.ts";
+import Aluno from "../models/Aluno.ts";
+import type { IAluno } from "../models/Aluno.ts";
+import Disciplina from "../models/Disciplina.ts";
+import Turma from "../models/Turma.ts";
+
 
 async function run() {
   try {
