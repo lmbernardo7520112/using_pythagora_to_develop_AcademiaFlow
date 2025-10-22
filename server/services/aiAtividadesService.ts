@@ -1,4 +1,5 @@
 // server/services/aiAtividadesService.ts
+
 import axios from "axios";
 import { AtividadeGerada } from "../models/AtividadeGerada.js";
 import { ValidacaoPedagogica } from "../models/ValidacaoPedagogica.ts";
@@ -10,22 +11,30 @@ import { enviarFeedbackParaN8n } from "../services/aiFeedbackService.js";
 export const enviarParaN8n = async (dados: any) => {
   try {
     const webhookUrl = process.env.N8N_AI_WEBHOOK_URL;
-    if (!webhookUrl) throw new Error("N8N_AI_WEBHOOK_URL não configurada.");
+    if (!webhookUrl) {
+      throw new Error("N8N_AI_WEBHOOK_URL não configurada no .env");
+    }
 
+    console.log("🚀 Enviando dados ao n8n...");
     const resposta = await axios.post(webhookUrl, dados, {
       headers: { "Content-Type": "application/json" },
       timeout: 60000,
     });
 
+    if (!resposta.data) {
+      throw new Error("Resposta vazia do n8n.");
+    }
+
+    console.log("✅ Resposta recebida do n8n:", resposta.data);
     return resposta.data;
   } catch (error: any) {
     console.error("❌ Falha na comunicação com n8n:", error.message);
-    throw new Error("Erro ao enviar dados para o n8n.");
+    throw new Error("Erro ao enviar dados para o n8n. Detalhes: " + error.message);
   }
 };
 
 /* ============================================================
-   🔹 2. GERAÇÃO DE ATIVIDADE
+   🔹 2. GERAÇÃO DE ATIVIDADE VIA IA
    ============================================================ */
 export const gerarAtividade = async (dados: any) => {
   try {
@@ -33,10 +42,18 @@ export const gerarAtividade = async (dados: any) => {
       throw new Error("Dados insuficientes para gerar atividades.");
     }
 
+    console.log("🧠 Gerando atividade via IA para:", {
+      professor: dados.professor?.nome,
+      disciplina: dados.disciplina?.id,
+      turma: dados.turma?.id,
+      tema: dados.conteudo?.tema,
+    });
+
     // 🔗 Envio ao fluxo n8n
     const respostaN8n = await enviarParaN8n(dados);
 
     if (!respostaN8n || !respostaN8n.atividades) {
+      console.error("❌ Resposta inválida do n8n:", respostaN8n);
       throw new Error("Falha ao gerar atividades via IA.");
     }
 
@@ -46,7 +63,13 @@ export const gerarAtividade = async (dados: any) => {
       disciplinaId: dados.disciplina.id,
       turmaId: dados.turma.id,
       atividades: respostaN8n.atividades,
-      metadata: respostaN8n.metadata,
+      metadata: {
+        ...respostaN8n.metadata,
+        tema: dados.conteudo?.tema,
+        tipo: dados.tipo_atividade,
+        dificuldade: dados.nivel_dificuldade,
+        quantidade: dados.quantidade,
+      },
       revisado: false,
     });
 
@@ -79,7 +102,12 @@ export const listarAtividadesPorProfessor = async (professorId: string) => {
    ============================================================ */
 export const revisarAtividade = async (id: string) => {
   try {
-    const atividade = await AtividadeGerada.findByIdAndUpdate(id, { revisado: true }, { new: true });
+    const atividade = await AtividadeGerada.findByIdAndUpdate(
+      id,
+      { revisado: true },
+      { new: true }
+    );
+
     if (!atividade) throw new Error("Atividade não encontrada.");
 
     return { success: true, message: "Atividade revisada com sucesso.", data: atividade };
@@ -117,7 +145,15 @@ export const validarAtividade = async (payload: {
   disciplina: { id: string; nome: string };
 }) => {
   try {
-    const { id, explicacaoAtualizada, feedbackProfessor, qualidadeIA, comentario, professor, disciplina } = payload;
+    const {
+      id,
+      explicacaoAtualizada,
+      feedbackProfessor,
+      qualidadeIA,
+      comentario,
+      professor,
+      disciplina,
+    } = payload;
 
     const atividade = await AtividadeGerada.findByIdAndUpdate(
       id,
@@ -130,9 +166,9 @@ export const validarAtividade = async (payload: {
       { new: true }
     );
 
-    if (!atividade) throw new Error("Atividade não encontrada");
+    if (!atividade) throw new Error("Atividade não encontrada.");
 
-    // Atualiza registro pedagógico
+    // Atualiza ou cria registro pedagógico
     await ValidacaoPedagogica.findOneAndUpdate(
       { professorId: professor.id, disciplinaId: disciplina.id },
       {
@@ -153,7 +189,7 @@ export const validarAtividade = async (payload: {
       { upsert: true, new: true }
     );
 
-    // Feedback para o n8n
+    // 🔁 Feedback para o n8n
     await enviarFeedbackParaN8n({
       professor,
       disciplina,
@@ -172,7 +208,7 @@ export const validarAtividade = async (payload: {
       message: "Atividade validada e feedback enviado com sucesso.",
       data: atividade,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Erro em validarAtividade:", error);
     throw new Error("Erro ao validar e enviar feedback da atividade.");
   }
@@ -187,8 +223,25 @@ export const obterResumoPedagogico = async () => {
 
     const resumo = await Promise.all(
       registros.map(async (p) => {
-        const totalGeradas = await AtividadeGerada.countDocuments({ professorId: p.professorId });
-        const taxaAderencia = totalGeradas > 0 ? (p.atividadesValidadas / totalGeradas) * 100 : 0;
+        const totalGeradas = await AtividadeGerada.countDocuments({
+          professorId: p.professorId,
+        });
+
+        const taxaAderencia =
+          totalGeradas > 0 ? (p.atividadesValidadas / totalGeradas) * 100 : 0;
+
+        const mediaQualidadeIA =
+          p.feedbacks.length > 0
+            ? Number(
+                (
+                  p.feedbacks.reduce(
+                    (acc: number, f: { qualidadeIA: number }) =>
+                      acc + (f.qualidadeIA || 0),
+                    0
+                  ) / p.feedbacks.length
+                ).toFixed(1)
+              )
+            : 0;
 
         return {
           professor: p.nomeProfessor,
@@ -196,19 +249,14 @@ export const obterResumoPedagogico = async () => {
           totalGeradas,
           totalValidadas: p.atividadesValidadas,
           taxaAderencia: Number(taxaAderencia.toFixed(1)),
-          mediaQualidadeIA:
-            p.feedbacks.length > 0
-              ? Number(
-                  (p.feedbacks.reduce((acc: any, f: { qualidadeIA: any; }) => acc + (f.qualidadeIA || 0), 0) / p.feedbacks.length).toFixed(1)
-                )
-              : 0,
+          mediaQualidadeIA,
           ultimaValidacao: p.ultimaValidacao,
         };
       })
     );
 
-    return resumo;
-  } catch (error) {
+    return { success: true, data: resumo };
+  } catch (error: any) {
     console.error("❌ Erro em obterResumoPedagogico:", error);
     throw new Error("Erro ao consolidar dados da coordenação pedagógica.");
   }
