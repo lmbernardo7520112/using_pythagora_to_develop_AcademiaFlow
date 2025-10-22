@@ -9,6 +9,7 @@ import {
   GraduationCap,
   BookOpen,
   BarChart3,
+  Sparkles,
 } from "lucide-react";
 
 interface MenuItem {
@@ -36,10 +37,10 @@ export function Sidebar() {
             icon: LayoutDashboard,
           },
           {
-            key: "professor-disciplines",
-            label: "Minhas Disciplinas",
-            path: "/professor/disciplinas",
-            icon: BookOpen,
+            key: "professor-atividades",
+            label: "Criar Atividades",
+            path: "/professor/atividades",
+            icon: Sparkles, // Ícone IA
           },
         ]
       : role === "secretaria" || role === "admin" || role === "administrador"

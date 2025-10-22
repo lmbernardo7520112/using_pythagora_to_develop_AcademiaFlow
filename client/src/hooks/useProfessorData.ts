@@ -1,9 +1,10 @@
+// client/src/hooks/useProfessorData.ts
 import { useState, useCallback } from "react";
 import axios from "axios";
 
 /**
  * Hook para buscar disciplinas e turmas associadas ao professor autenticado.
- * Reaproveita o endpoint do professorService no backend.
+ * Compatível com o backend atual (rota: /api/professor/disciplinas)
  */
 export const useProfessorData = () => {
   const [disciplinas, setDisciplinas] = useState<any[]>([]);
@@ -12,11 +13,16 @@ export const useProfessorData = () => {
 
   /**
    * 🔹 Busca disciplinas e turmas do professor autenticado
+   * Ajustado para backend que usa req.user (sem :id na rota)
    */
-  const fetchDisciplinasETurmas = useCallback(async (professorId: string) => {
+  const fetchDisciplinasETurmas = useCallback(async () => {
     try {
+      console.log("[useProfessorData] Fetching professor disciplines...");
       setLoading(true);
-      const res = await axios.get(`/api/professores/${professorId}/disciplinas`);
+
+      // ✅ Ajuste principal — rota sem :id
+      const res = await axios.get(`/api/professor/disciplinas`);
+
       if (res.data?.success && Array.isArray(res.data.data)) {
         const disciplinas = res.data.data;
 
@@ -32,6 +38,9 @@ export const useProfessorData = () => {
 
         setDisciplinas(disciplinas);
         setTurmas(Array.from(turmasUnicas.values()));
+        console.log(`[useProfessorData] Disciplinas carregadas: ${disciplinas.length}`);
+      } else {
+        console.warn("[useProfessorData] Nenhuma disciplina encontrada para este professor.");
       }
     } catch (error) {
       console.error("❌ Erro ao buscar disciplinas/turmas:", error);

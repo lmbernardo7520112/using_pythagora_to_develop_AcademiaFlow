@@ -18,13 +18,16 @@ import SecretariaDashboard from "./pages/SecretariaDashboard";
 import SecretariaTurmas from "./pages/SecretariaTurmas";
 import SecretariaAlunos from "./pages/SecretariaAlunos";
 import SecretariaRelatorios from "./pages/SecretariaRelatorios";
+import { SecretariaDisciplinas } from "./pages/SecretariaDisciplinas";
+
+// ✅ Fluxo do Professor — IA Atividades
+import { AiActivitiesDashboard } from "./pages/AiActivitiesDashboard";
 
 // ✅ Redirecionamento automático por role
 import { RoleRedirect } from "./components/RoleRedirect";
 
 // ✅ Página de acesso negado
 import { Unauthorized } from "./pages/Unauthorized";
-import { SecretariaDisciplinas } from "./pages/SecretariaDisciplinas";
 
 function App() {
   return (
@@ -46,7 +49,9 @@ function App() {
               }
             />
 
-            {/* 🔹 Rotas do Professor */}
+            {/* =====================================================
+               🔹 ROTAS DO PROFESSOR
+               ===================================================== */}
             <Route
               path="/professor/*"
               element={
@@ -58,14 +63,22 @@ function App() {
               {/* Painel inicial do professor */}
               <Route index element={<ProfessorDashboard />} />
 
-              {/* ✅ Rota de gerenciamento de notas corrigida */}
+              {/* ✅ Gerenciamento de notas */}
               <Route
                 path="grades/:turmaId/:disciplinaId"
                 element={<GradeManagement />}
               />
+
+              {/* ✅ Nova rota de Atividades de IA */}
+              <Route
+                path="atividades"
+                element={<AiActivitiesDashboard />}
+              />
             </Route>
 
-            {/* 🔹 Rotas da Secretaria */}
+            {/* =====================================================
+               🔹 ROTAS DA SECRETARIA
+               ===================================================== */}
             <Route
               path="/secretaria/*"
               element={
@@ -80,8 +93,9 @@ function App() {
               {/* Lista de turmas */}
               <Route path="turmas" element={<SecretariaTurmas />} />
 
+              {/* Disciplinas */}
               <Route path="disciplinas" element={<SecretariaDisciplinas />} />
-              
+
               {/* Alunos de uma turma específica */}
               <Route
                 path="turmas/:turmaId/alunos"

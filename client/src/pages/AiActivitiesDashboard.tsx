@@ -1,19 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAiActivities } from "@/hooks/useAiActivities";
 import { useProfessorData } from "@/hooks/useProfessorData";
+import { ActivityFilters } from "@/components/ai/ActivityFilters";
 import { AiActivityList } from "@/components/ai/AiActivityList";
+import { AiActivityProgressChart } from "@/components/ai/AiActivityProgressChart";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function AiActivitiesDashboard() {
   const { user } = useAuth();
-  const { activities, loading, fetchActivities, generateActivities, validateActivity } = useAiActivities();
+  const { activities, loading, fetchActivities, generateActivities, validateActivity } =
+    useAiActivities();
   const { disciplinas, turmas, fetchDisciplinasETurmas } = useProfessorData();
 
   const [selectedDisciplina, setSelectedDisciplina] = useState<string>("");
@@ -24,14 +39,38 @@ export function AiActivitiesDashboard() {
   const [feedbackProfessor, setFeedbackProfessor] = useState("");
   const [qualidadeIA, setQualidadeIA] = useState(8);
   const [comentario, setComentario] = useState("");
+  const [filters, setFilters] = useState<{
+    disciplinaId?: string;
+    turmaId?: string;
+    status?: "pendente" | "revisada" | "todas";
+  }>({ status: "todas" });
 
-  // 🔹 Buscar disciplinas e turmas do professor autenticado
+  // 🔹 Buscar disciplinas, turmas e atividades
   useEffect(() => {
     if (user?._id) {
       fetchDisciplinasETurmas(user._id);
       fetchActivities(user._id);
     }
   }, [user, fetchActivities, fetchDisciplinasETurmas]);
+
+  // 🔹 Aplicar filtros dinamicamente
+  const filteredActivities = useMemo(() => {
+    if (!activities) return [];
+
+    return activities.filter((a) => {
+      const matchDisciplina = filters.disciplinaId
+        ? a.disciplinaId === filters.disciplinaId
+        : true;
+      const matchTurma = filters.turmaId ? a.turmaId === filters.turmaId : true;
+      const matchStatus =
+        filters.status === "pendente"
+          ? !a.validado && !a.revisado
+          : filters.status === "revisada"
+          ? a.validado || a.revisado
+          : true;
+      return matchDisciplina && matchTurma && matchStatus;
+    });
+  }, [activities, filters]);
 
   // 🔹 Geração de novas atividades via IA
   const handleGenerate = async () => {
@@ -47,7 +86,8 @@ export function AiActivitiesDashboard() {
       conteudo: {
         tema: disciplina?.nome || "Tema Geral",
         subtopicos: ["Conceitos Fundamentais"],
-        objetivos_aprendizagem: "Gerar atividades que estimulem o raciocínio e a compreensão conceitual.",
+        objetivos_aprendizagem:
+          "Gerar atividades que estimulem o raciocínio e a compreensão conceitual.",
       },
       tipo_atividade: "múltipla escolha",
       nivel_dificuldade: "intermediário",
@@ -87,6 +127,7 @@ export function AiActivitiesDashboard() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* 🔹 Cabeçalho */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h1 className="text-2xl font-bold">Atividades Geradas por IA</h1>
 
@@ -117,7 +158,10 @@ export function AiActivitiesDashboard() {
             </SelectContent>
           </Select>
 
-          <Button onClick={handleGenerate} disabled={loading || !selectedDisciplina || !selectedTurma}>
+          <Button
+            onClick={handleGenerate}
+            disabled={loading || !selectedDisciplina || !selectedTurma}
+          >
             {loading ? (
               <>
                 <Loader2 className="animate-spin mr-2 h-4 w-4" /> Gerando...
@@ -131,8 +175,20 @@ export function AiActivitiesDashboard() {
         </div>
       </div>
 
-      {/* 🔹 Lista de atividades */}
-      <AiActivityList activities={activities} onReview={handleOpenReview} />
+      {/* 🔹 Filtros de atividade */}
+      {user && (
+        <ActivityFilters
+          professorId={user._id}
+          loading={loading}
+          onFilterChange={setFilters}
+        />
+      )}
+
+      {/* 🔹 Gráfico analítico de progresso */}
+      <AiActivityProgressChart activities={filteredActivities} />
+
+      {/* 🔹 Lista de atividades filtradas */}
+      <AiActivityList activities={filteredActivities} onReview={handleOpenReview} />
 
       {/* 🔹 Modal de revisão pedagógica */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
