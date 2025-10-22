@@ -1,19 +1,13 @@
-import { useEffect, useState, useMemo } from "react";
+// client/src/pages/professor/AiActivitiesDashboard.tsx
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAiActivities } from "@/hooks/useAiActivities";
 import { useProfessorData } from "@/hooks/useProfessorData";
-import { ActivityFilters } from "@/components/ai/ActivityFilters";
 import { AiActivityList } from "@/components/ai/AiActivityList";
 import { AiActivityProgressChart } from "@/components/ai/AiActivityProgressChart";
+import { ActivityFilters } from "@/components/ai/ActivityFilters";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +18,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function AiActivitiesDashboard() {
   const { user } = useAuth();
@@ -39,40 +40,17 @@ export function AiActivitiesDashboard() {
   const [feedbackProfessor, setFeedbackProfessor] = useState("");
   const [qualidadeIA, setQualidadeIA] = useState(8);
   const [comentario, setComentario] = useState("");
-  const [filters, setFilters] = useState<{
-    disciplinaId?: string;
-    turmaId?: string;
-    status?: "pendente" | "revisada" | "todas";
-  }>({ status: "todas" });
 
-  // 🔹 Buscar disciplinas, turmas e atividades
+  // ✅ Busca inicial das disciplinas/turmas e atividades do professor autenticado
   useEffect(() => {
     if (user?._id) {
-      fetchDisciplinasETurmas(user._id);
+      // backend usa req.user, então não enviamos o id
+      fetchDisciplinasETurmas();
       fetchActivities(user._id);
     }
   }, [user, fetchActivities, fetchDisciplinasETurmas]);
 
-  // 🔹 Aplicar filtros dinamicamente
-  const filteredActivities = useMemo(() => {
-    if (!activities) return [];
-
-    return activities.filter((a) => {
-      const matchDisciplina = filters.disciplinaId
-        ? a.disciplinaId === filters.disciplinaId
-        : true;
-      const matchTurma = filters.turmaId ? a.turmaId === filters.turmaId : true;
-      const matchStatus =
-        filters.status === "pendente"
-          ? !a.validado && !a.revisado
-          : filters.status === "revisada"
-          ? a.validado || a.revisado
-          : true;
-      return matchDisciplina && matchTurma && matchStatus;
-    });
-  }, [activities, filters]);
-
-  // 🔹 Geração de novas atividades via IA
+  // ✅ Geração de novas atividades via IA
   const handleGenerate = async () => {
     if (!user || !selectedDisciplina || !selectedTurma) return;
 
@@ -97,14 +75,14 @@ export function AiActivitiesDashboard() {
     await generateActivities(payload);
   };
 
-  // 🔹 Abertura do modal de revisão
+  // ✅ Abertura do modal de revisão
   const handleOpenReview = (activity: any) => {
     setSelectedActivity(activity);
     setExplicacaoAtualizada(activity.atividades?.[0]?.explicacao ?? "");
     setModalOpen(true);
   };
 
-  // 🔹 Envio de feedback e validação
+  // ✅ Envio de feedback e validação
   const handleValidate = async () => {
     if (!user || !selectedActivity) return;
 
@@ -127,11 +105,12 @@ export function AiActivitiesDashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* 🔹 Cabeçalho */}
+      {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h1 className="text-2xl font-bold">Atividades Geradas por IA</h1>
 
         <div className="flex flex-col md:flex-row gap-2 items-center">
+          {/* Select de disciplina */}
           <Select value={selectedDisciplina} onValueChange={setSelectedDisciplina}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Selecione disciplina" />
@@ -145,6 +124,7 @@ export function AiActivitiesDashboard() {
             </SelectContent>
           </Select>
 
+          {/* Select de turma */}
           <Select value={selectedTurma} onValueChange={setSelectedTurma}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Selecione turma" />
@@ -158,6 +138,7 @@ export function AiActivitiesDashboard() {
             </SelectContent>
           </Select>
 
+          {/* Botão de nova atividade */}
           <Button
             onClick={handleGenerate}
             disabled={loading || !selectedDisciplina || !selectedTurma}
@@ -175,22 +156,18 @@ export function AiActivitiesDashboard() {
         </div>
       </div>
 
-      {/* 🔹 Filtros de atividade */}
-      {user && (
-        <ActivityFilters
-          professorId={user._id}
-          loading={loading}
-          onFilterChange={setFilters}
-        />
-      )}
+      {/* Filtros adicionais */}
+      <ActivityFilters professorId={""} onFilterChange={function (filters: { disciplinaId?: string; turmaId?: string; status?: "pendente" | "revisada" | "todas"; }): void {
+        throw new Error("Function not implemented.");
+      } } />
 
-      {/* 🔹 Gráfico analítico de progresso */}
-      <AiActivityProgressChart activities={filteredActivities} />
+      {/* Gráfico analítico */}
+      <AiActivityProgressChart activities={activities} />
 
-      {/* 🔹 Lista de atividades filtradas */}
-      <AiActivityList activities={filteredActivities} onReview={handleOpenReview} />
+      {/* Lista de atividades */}
+      <AiActivityList activities={activities} onReview={handleOpenReview} />
 
-      {/* 🔹 Modal de revisão pedagógica */}
+      {/* Modal de revisão pedagógica */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
