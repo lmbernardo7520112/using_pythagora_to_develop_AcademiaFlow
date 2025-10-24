@@ -1,3 +1,4 @@
+//client/src/hooks/useAiActivities.ts
 import { useState, useCallback, useRef } from "react";
 import axios from "axios";
 
