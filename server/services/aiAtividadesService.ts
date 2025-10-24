@@ -1,5 +1,6 @@
 // server/services/aiAtividadesService.ts
 
+
 import axios from "axios";
 import { AtividadeGerada } from "../models/AtividadeGerada.js";
 import { ValidacaoPedagogica } from "../models/ValidacaoPedagogica.ts";
@@ -85,15 +86,37 @@ export const gerarAtividade = async (dados: any) => {
 };
 
 /* ============================================================
-   🔹 3. LISTAGEM DE ATIVIDADES POR PROFESSOR
+   🔹 3. LISTAGEM DE ATIVIDADES POR PROFESSOR (versão corrigida)
    ============================================================ */
 export const listarAtividadesPorProfessor = async (professorId: string) => {
   try {
-    const atividades = await AtividadeGerada.find({ professorId }).sort({ criadoEm: -1 });
-    return { success: true, data: atividades };
-  } catch (error) {
-    console.error("❌ Erro ao listar atividades:", error);
-    throw new Error("Erro ao buscar atividades do professor.");
+    console.log("📡 Solicitando atividades do professor:", professorId);
+
+    if (!professorId || professorId.trim() === "") {
+      console.warn("⚠️ ID do professor não fornecido ou inválido.");
+      return { success: false, data: [], message: "ID do professor ausente ou inválido." };
+    }
+
+    const atividades = await AtividadeGerada.find({ professorId })
+      .sort({ criadoEm: -1 })
+      .lean();
+
+    console.log(`📚 ${atividades.length} atividades encontradas para o professor.`);
+
+    return {
+      success: true,
+      data: atividades,
+      count: atividades.length,
+    };
+  } catch (error: any) {
+    console.error("❌ Erro ao listar atividades:", error.message);
+    // Em vez de quebrar, retornamos um objeto previsível
+    return {
+      success: false,
+      data: [],
+      message: "Erro ao buscar atividades do professor.",
+      details: error.message,
+    };
   }
 };
 

@@ -28,8 +28,13 @@ import {
 
 export function AiActivitiesDashboard() {
   const { user } = useAuth();
-  const { activities, loading, fetchActivities, generateActivities, validateActivity } =
-    useAiActivities();
+  const {
+    activities,
+    loading,
+    fetchActivities,
+    generateActivities,
+    validateActivity,
+  } = useAiActivities();
   const { disciplinas, turmas, fetchDisciplinasETurmas } = useProfessorData();
 
   const [selectedDisciplina, setSelectedDisciplina] = useState<string>("");
@@ -40,17 +45,27 @@ export function AiActivitiesDashboard() {
   const [feedbackProfessor, setFeedbackProfessor] = useState("");
   const [qualidadeIA, setQualidadeIA] = useState(8);
   const [comentario, setComentario] = useState("");
+  const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [tema, setTema] = useState("");
+  const [tipoAtividade, setTipoAtividade] = useState("múltipla escolha");
+  const [nivelDificuldade, setNivelDificuldade] = useState("intermediário");
+  const [quantidade, setQuantidade] = useState(2);
 
-  // ✅ Busca inicial das disciplinas/turmas e atividades do professor autenticado
+  // ✅ Busca inicial de disciplinas/turmas e atividades
   useEffect(() => {
     if (user?._id) {
-      // backend usa req.user, então não enviamos o id
       fetchDisciplinasETurmas();
       fetchActivities(user._id);
     }
   }, [user, fetchActivities, fetchDisciplinasETurmas]);
 
-  // ✅ Geração de novas atividades via IA
+  // ✅ Abre modal de geração de atividades
+  const handleOpenGenerateModal = () => {
+    if (!selectedDisciplina || !selectedTurma) return;
+    setGenerateModalOpen(true);
+  };
+
+  // ✅ Envia payload para o backend → n8n
   const handleGenerate = async () => {
     if (!user || !selectedDisciplina || !selectedTurma) return;
 
@@ -62,17 +77,20 @@ export function AiActivitiesDashboard() {
       disciplina: { id: disciplina?._id, nome: disciplina?.nome },
       turma: { id: turma?._id, nome: turma?.nome },
       conteudo: {
-        tema: disciplina?.nome || "Tema Geral",
+        tema: tema || disciplina?.nome || "Tema Geral",
         subtopicos: ["Conceitos Fundamentais"],
-        objetivos_aprendizagem:
+        objetivos_aprendizagem: [
           "Gerar atividades que estimulem o raciocínio e a compreensão conceitual.",
+        ],
       },
-      tipo_atividade: "múltipla escolha",
-      nivel_dificuldade: "intermediário",
-      quantidade: 2,
+      tipo_atividade: tipoAtividade,
+      nivel_dificuldade: nivelDificuldade,
+      quantidade: quantidade,
     };
 
     await generateActivities(payload);
+    setGenerateModalOpen(false);
+    fetchActivities(user._id);
   };
 
   // ✅ Abertura do modal de revisão
@@ -140,32 +158,94 @@ export function AiActivitiesDashboard() {
 
           {/* Botão de nova atividade */}
           <Button
-            onClick={handleGenerate}
+            onClick={handleOpenGenerateModal}
             disabled={loading || !selectedDisciplina || !selectedTurma}
           >
-            {loading ? (
-              <>
-                <Loader2 className="animate-spin mr-2 h-4 w-4" /> Gerando...
-              </>
-            ) : (
-              <>
-                <Plus className="mr-2 h-4 w-4" /> Nova Atividade
-              </>
-            )}
+            <Plus className="mr-2 h-4 w-4" /> Nova Atividade
           </Button>
         </div>
       </div>
 
       {/* Filtros adicionais */}
-      <ActivityFilters professorId={""} onFilterChange={function (filters: { disciplinaId?: string; turmaId?: string; status?: "pendente" | "revisada" | "todas"; }): void {
-        throw new Error("Function not implemented.");
-      } } />
+      <ActivityFilters
+        professorId={user?._id || ""}
+        onFilterChange={() => {}}
+      />
 
       {/* Gráfico analítico */}
       <AiActivityProgressChart activities={activities} />
 
       {/* Lista de atividades */}
       <AiActivityList activities={activities} onReview={handleOpenReview} />
+
+      {/* Modal de geração de nova atividade */}
+      <Dialog open={generateModalOpen} onOpenChange={setGenerateModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gerar Nova Atividade</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Label>Tema</Label>
+            <Input
+              value={tema}
+              onChange={(e) => setTema(e.target.value)}
+              placeholder="Digite o tema da atividade"
+            />
+
+            <Label>Tipo de Atividade</Label>
+            <Select value={tipoAtividade} onValueChange={setTipoAtividade}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="múltipla escolha">Múltipla Escolha</SelectItem>
+                <SelectItem value="dissertativa">Dissertativa</SelectItem>
+                <SelectItem value="desafio prático">Desafio Prático</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Label>Nível de Dificuldade</Label>
+            <Select
+              value={nivelDificuldade}
+              onValueChange={setNivelDificuldade}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o nível" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="básico">Básico</SelectItem>
+                <SelectItem value="intermediário">Intermediário</SelectItem>
+                <SelectItem value="avançado">Avançado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Label>Quantidade de Questões</Label>
+            <Input
+              type="number"
+              min={1}
+              max={10}
+              value={quantidade}
+              onChange={(e) => setQuantidade(Number(e.target.value))}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setGenerateModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleGenerate}>
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" /> Gerando...
+                </>
+              ) : (
+                "Gerar Atividade"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de revisão pedagógica */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

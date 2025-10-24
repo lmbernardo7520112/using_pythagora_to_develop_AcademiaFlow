@@ -2,7 +2,8 @@
 
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api/ai";
+// ✅ Corrigir para apontar para o backend na porta 3000
+const API_BASE = "http://localhost:3000/api/ai";
 
 export const gerarAtividades = async (payload: any) => {
   const { data } = await axios.post(`${API_BASE}/gerarAtividade`, payload);
