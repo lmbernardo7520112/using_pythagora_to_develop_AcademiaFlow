@@ -1,115 +1,50 @@
-import { useState, useMemo } from "react";
+// client/src/components/ai/AiActivityList.tsx
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, Clock3, Filter } from "lucide-react";
+import { Eye, Edit3, Trash2 } from "lucide-react";
 
-interface AiActivityListProps {
-  activities: any[];
-  onReview?: (activity: any) => void;
-}
+export const AiActivityList = ({ activities, onReview }: any) => {
+  const navigate = useNavigate();
 
-/**
- * 🔹 Listagem interativa de atividades geradas por IA.
- * - Exibe contadores de status (pendentes / revisadas)
- * - Permite filtragem dinâmica
- * - Mantém integração com callback onReview
- */
-export function AiActivityList({ activities, onReview }: AiActivityListProps) {
-  const [filter, setFilter] = useState<"all" | "pending" | "reviewed">("all");
-
-  // 🔸 Cálculo dos contadores
-  const { total, pending, reviewed } = useMemo(() => {
-    const total = activities?.length || 0;
-    const reviewed = activities?.filter((a) => a.validado || a.revisado)?.length || 0;
-    const pending = total - reviewed;
-    return { total, pending, reviewed };
-  }, [activities]);
-
-  // 🔸 Aplicar filtro de exibição
-  const filteredActivities = useMemo(() => {
-    if (filter === "pending") return activities.filter((a) => !a.validado && !a.revisado);
-    if (filter === "reviewed") return activities.filter((a) => a.validado || a.revisado);
-    return activities;
-  }, [activities, filter]);
-
-  if (!activities || activities.length === 0) {
-    return <p className="text-muted-foreground">Nenhuma atividade gerada ainda.</p>;
+  if (!activities?.length) {
+    return <p className="text-center text-gray-500">Nenhuma atividade gerada ainda.</p>;
   }
 
   return (
-    <div className="space-y-6">
-      {/* 🔹 Cabeçalho de filtros e contadores */}
-      <div className="flex flex-wrap justify-between items-center">
-        <div className="flex items-center gap-3 flex-wrap">
-          <Badge variant="secondary" className="text-sm px-3 py-1">
-            Total: {total}
-          </Badge>
-          <Badge variant={pending > 0 ? "destructive" : "secondary"} className="text-sm px-3 py-1">
-            Pendentes: {pending}
-          </Badge>
-          <Badge variant="default" className="text-sm px-3 py-1">
-            Revisadas: {reviewed}
-          </Badge>
-        </div>
+    <div className="grid md:grid-cols-2 gap-4">
+      {activities.map((a: any) => (
+        <Card key={a._id} className="shadow-md">
+          <CardHeader>
+            <CardTitle>{a.metadata?.tema || "Atividade Sem Título"}</CardTitle>
+          </CardHeader>
 
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <select
-            className="border rounded-md px-2 py-1 text-sm"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as any)}
-          >
-            <option value="all">Todas</option>
-            <option value="pending">Pendentes</option>
-            <option value="reviewed">Revisadas</option>
-          </select>
-        </div>
-      </div>
+          <CardContent>
+            <p className="text-sm text-gray-500">
+              {a.metadata?.disciplina || "Disciplina não especificada"}
+            </p>
+            <p className="text-xs text-gray-400">
+              {new Date(a.metadata?.timestamp).toLocaleString()}
+            </p>
+          </CardContent>
 
-      <Separator />
+          <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => navigate(`/professor/atividades/${a._id}`)}>
+              <Eye className="mr-2 h-4 w-4" /> Ver Atividade
+            </Button>
 
-      {/* 🔹 Lista de atividades */}
-      <div className="space-y-3">
-        {filteredActivities.map((activity) => (
-          <div
-            key={activity._id}
-            className="p-4 border rounded-lg shadow-sm bg-white flex flex-col md:flex-row justify-between items-start md:items-center"
-          >
-            <div className="flex flex-col space-y-1">
-              <h3 className="font-semibold">
-                {activity.metadata?.tema ?? "Atividade sem tema"}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {activity.atividades?.[0]?.titulo ?? "Sem título"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Status:{" "}
-                {activity.validado || activity.revisado ? (
-                  <span className="text-green-600 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="h-4 w-4" /> Revisada
-                  </span>
-                ) : (
-                  <span className="text-yellow-600 font-semibold flex items-center gap-1">
-                    <Clock3 className="h-4 w-4" /> Pendente
-                  </span>
-                )}
-              </p>
-            </div>
-
-            {!activity.validado && !activity.revisado && onReview && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onReview(activity)}
-                className="mt-2 md:mt-0"
-              >
-                Revisar
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => onReview(a)}>
+                <Edit3 className="mr-2 h-4 w-4" /> Revisar
               </Button>
-            )}
-          </div>
-        ))}
-      </div>
+              <Button variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
+      ))}
     </div>
   );
-}
+};

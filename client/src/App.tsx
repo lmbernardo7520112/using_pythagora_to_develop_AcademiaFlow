@@ -1,5 +1,4 @@
-//client/src/App.tsx
-
+// client/src/App.tsx
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/ui/theme-provider";
@@ -22,6 +21,7 @@ import { SecretariaDisciplinas } from "./pages/SecretariaDisciplinas";
 
 // ✅ Fluxo do Professor — IA Atividades
 import { AiActivitiesDashboard } from "./pages/AiActivitiesDashboard";
+import AIGeneratedActivities from "./pages/AIGeneratedActivities"; // 🔹 Nova página de visualização detalhada
 
 // ✅ Redirecionamento automático por role
 import { RoleRedirect } from "./components/RoleRedirect";
@@ -35,11 +35,13 @@ function App() {
       <ThemeProvider defaultTheme="light" storageKey="ui-theme">
         <Router>
           <Routes>
-            {/* 🔹 Rotas públicas */}
+            {/* =====================================================
+               🔹 ROTAS PÚBLICAS
+               ===================================================== */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* 🔹 Redirecionamento inicial baseado no papel */}
+            {/* Redirecionamento inicial por role */}
             <Route
               path="/"
               element={
@@ -60,7 +62,7 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              {/* Painel inicial do professor */}
+              {/* Painel principal do professor */}
               <Route index element={<ProfessorDashboard />} />
 
               {/* ✅ Gerenciamento de notas */}
@@ -69,10 +71,16 @@ function App() {
                 element={<GradeManagement />}
               />
 
-              {/* ✅ Nova rota de Atividades de IA */}
+              {/* ✅ Painel principal de Atividades de IA */}
               <Route
                 path="atividades"
                 element={<AiActivitiesDashboard />}
+              />
+
+              {/* ✅ Nova rota detalhada: visualização individual de uma atividade */}
+              <Route
+                path="atividades/:id"
+                element={<AIGeneratedActivities />}
               />
             </Route>
 
@@ -90,13 +98,13 @@ function App() {
               {/* Painel principal */}
               <Route index element={<SecretariaDashboard />} />
 
-              {/* Lista de turmas */}
+              {/* Turmas */}
               <Route path="turmas" element={<SecretariaTurmas />} />
 
               {/* Disciplinas */}
               <Route path="disciplinas" element={<SecretariaDisciplinas />} />
 
-              {/* Alunos de uma turma específica */}
+              {/* Alunos de uma turma */}
               <Route
                 path="turmas/:turmaId/alunos"
                 element={<SecretariaAlunos />}
@@ -106,14 +114,19 @@ function App() {
               <Route path="relatorios" element={<SecretariaRelatorios />} />
             </Route>
 
-            {/* 🔹 Página de acesso não autorizado */}
+            {/* =====================================================
+               🔹 OUTRAS ROTAS GERAIS
+               ===================================================== */}
+
+            {/* Página de acesso não autorizado */}
             <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* 🔹 Página genérica (404) */}
+            {/* Página genérica (404) */}
             <Route path="*" element={<BlankPage />} />
           </Routes>
         </Router>
 
+        {/* 🔔 Sistema global de notificações */}
         <Toaster />
       </ThemeProvider>
     </AuthProvider>
