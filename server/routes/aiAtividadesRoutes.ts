@@ -6,6 +6,7 @@ import {
   listarAtividadesPorProfessor,
   revisarAtividade,
   excluirAtividade,
+  excluirAtividadesPorProfessor,
 } from "../services/aiAtividadesService.ts";
 
 const router = express.Router();
@@ -17,21 +18,12 @@ router.post("/api/ai/gerarAtividade", async (req, res) => {
   try {
     console.log("📥 Requisição recebida para geração de atividade...");
     const resultado = await gerarAtividade(req.body);
-
-    if (!resultado?.success) {
-      return res.status(400).json({
-        success: false,
-        message: resultado?.message || "Falha ao gerar atividades.",
-      });
-    }
-
+    if (!resultado?.success)
+      return res.status(400).json({ success: false, message: resultado?.message || "Falha ao gerar atividades." });
     res.status(200).json(resultado);
   } catch (error: any) {
     console.error("❌ Erro na rota /api/ai/gerarAtividade:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Erro interno ao gerar atividade.",
-    });
+    res.status(500).json({ success: false, message: error.message || "Erro interno ao gerar atividade." });
   }
 });
 
@@ -42,25 +34,13 @@ router.get("/api/ai/atividades/:professorId", async (req, res) => {
   try {
     const { professorId } = req.params;
     console.log("📡 Buscando atividades para professor:", professorId);
-
     const resultado = await listarAtividadesPorProfessor(professorId);
-
-    if (!resultado?.success) {
-      return res.status(400).json({
-        success: false,
-        message:
-          resultado?.message || "Erro ao buscar atividades do professor.",
-        details: resultado?.details || null,
-      });
-    }
-
+    if (!resultado?.success)
+      return res.status(400).json({ success: false, message: resultado?.message || "Erro ao buscar atividades." });
     res.status(200).json(resultado);
   } catch (error: any) {
     console.error("❌ Erro na rota /api/ai/atividades/:professorId:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Erro interno ao listar atividades.",
-    });
+    res.status(500).json({ success: false, message: error.message || "Erro interno ao listar atividades." });
   }
 });
 
@@ -71,34 +51,41 @@ router.patch("/api/ai/atividades/:id/revisar", async (req, res) => {
   try {
     const { id } = req.params;
     console.log("📝 Revisando atividade:", id);
-
     const resultado = await revisarAtividade(id);
     res.status(200).json(resultado);
   } catch (error: any) {
     console.error("❌ Erro na rota /api/ai/atividades/:id/revisar:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Erro interno ao revisar atividade.",
-    });
+    res.status(500).json({ success: false, message: error.message || "Erro interno ao revisar atividade." });
   }
 });
 
 /* ============================================================
-   🔹 4. EXCLUIR ATIVIDADE
+   🔹 4. EXCLUIR UMA ATIVIDADE ESPECÍFICA
    ============================================================ */
 router.delete("/api/ai/atividades/:id", async (req, res) => {
   try {
     const { id } = req.params;
     console.log("🗑️ Excluindo atividade:", id);
-
     const resultado = await excluirAtividade(id);
     res.status(200).json(resultado);
   } catch (error: any) {
     console.error("❌ Erro na rota /api/ai/atividades/:id:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Erro interno ao excluir atividade.",
-    });
+    res.status(500).json({ success: false, message: error.message || "Erro interno ao excluir atividade." });
+  }
+});
+
+/* ============================================================
+   🔹 5. EXCLUIR TODAS AS ATIVIDADES DE UM PROFESSOR
+   ============================================================ */
+router.delete("/api/ai/atividades/professor/:professorId", async (req, res) => {
+  try {
+    const { professorId } = req.params;
+    console.log("🧹 Excluindo TODAS as atividades do professor:", professorId);
+    const resultado = await excluirAtividadesPorProfessor(professorId);
+    res.status(resultado.success ? 200 : 400).json(resultado);
+  } catch (error: any) {
+    console.error("❌ Erro na rota /api/ai/atividades/professor/:professorId:", error);
+    res.status(500).json({ success: false, message: error.message || "Erro interno ao excluir atividades." });
   }
 });
 
