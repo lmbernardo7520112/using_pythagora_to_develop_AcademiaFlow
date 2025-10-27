@@ -1,13 +1,13 @@
 //client/src/contexts/AuthContext.tsx
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { login as apiLogin, register as apiRegister } from "../api/auth";
 import { User } from "../../../shared/types/user";
 
 type AuthContextType = {
   isAuthenticated: boolean;
   currentUser: User | null;
-  user: User | null; // ✅ Adicionado alias para compatibilidade (ex.: Sidebar, ProtectedRoute)
+  user: User | null; // ✅ Alias para compatibilidade global (Sidebar, ProtectedRoute, etc.)
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -16,7 +16,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return !!localStorage.getItem("accessToken");
   });
 
@@ -26,6 +26,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   /**
+   * 🧠 Restaura sessão automaticamente ao recarregar o app
+   * Garante que AuthContext volte com o mesmo estado após refresh
+   */
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    const userData = localStorage.getItem("userData");
+
+    if (token && userData) {
+      try {
+        const parsed = JSON.parse(userData) as User;
+        setCurrentUser(parsed);
+        setIsAuthenticated(true);
+        console.info("[AuthContext] Sessão restaurada do localStorage:", parsed);
+      } catch (err) {
+        console.warn("[AuthContext] userData inválido no localStorage, limpando...");
+        resetAuth();
+      }
+    } else {
+      console.info("[AuthContext] Nenhum dado salvo, usuário não autenticado.");
+      resetAuth();
+    }
+  }, []);
+
+  /**
    * 🔹 Efetua login e armazena tokens e dados do usuário
    */
   const login = async (email: string, password: string) => {
@@ -33,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiLogin(email, password);
       const { accessToken, refreshToken, ...userData } = response;
       setAuthData(accessToken, refreshToken, userData as User);
+      console.info("[AuthContext] Login concluído com sucesso.");
     } catch (error: unknown) {
       handleAuthError(error, "Login failed");
     }
@@ -46,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiRegister(email, password);
       const { accessToken, refreshToken, ...userData } = response;
       setAuthData(accessToken, refreshToken, userData as User);
+      console.info("[AuthContext] Registro concluído com sucesso.");
     } catch (error: unknown) {
       handleAuthError(error, "Registration failed");
     }
@@ -77,9 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!accessToken && !refreshToken) {
       throw new Error("Neither refreshToken nor accessToken was returned.");
     }
+
+    // ✅ Persistência unificada
     localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("userData", JSON.stringify(userData));
+
     setCurrentUser(userData);
     setIsAuthenticated(true);
   };
@@ -95,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (typeof error === "object" && error !== null && "message" in error) {
       errorMessage = (error as { message: string }).message;
     }
+    console.error("[AuthContext] Erro de autenticação:", errorMessage);
     throw new Error(errorMessage);
   };
 

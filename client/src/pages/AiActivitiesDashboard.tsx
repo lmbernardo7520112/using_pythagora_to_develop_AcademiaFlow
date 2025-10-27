@@ -1,4 +1,5 @@
 // client/src/pages/professor/AiActivitiesDashboard.tsx
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAiActivities } from "@/hooks/useAiActivities";
@@ -25,8 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/useToast";
 
 export function AiActivitiesDashboard() {
+  const { toast } = useToast();
   const { user } = useAuth();
   const {
     activities,
@@ -51,7 +54,9 @@ export function AiActivitiesDashboard() {
   const [nivelDificuldade, setNivelDificuldade] = useState("intermediário");
   const [quantidade, setQuantidade] = useState(2);
 
-  // ✅ Busca inicial de disciplinas/turmas e atividades
+  /* ============================================================
+     🔹 Busca inicial de disciplinas/turmas e atividades
+  ============================================================ */
   useEffect(() => {
     if (user?._id) {
       fetchDisciplinasETurmas();
@@ -59,15 +64,42 @@ export function AiActivitiesDashboard() {
     }
   }, [user, fetchActivities, fetchDisciplinasETurmas]);
 
-  // ✅ Abre modal de geração de atividades
+  /* ============================================================
+     🔹 Abre modal de geração de atividades
+  ============================================================ */
   const handleOpenGenerateModal = () => {
-    if (!selectedDisciplina || !selectedTurma) return;
+    if (!selectedDisciplina || !selectedTurma) {
+      toast({
+        title: "Selecione antes",
+        description: "É necessário escolher uma disciplina e uma turma antes de gerar uma atividade.",
+        variant: "default",
+      });
+      return;
+    }
     setGenerateModalOpen(true);
   };
 
-  // ✅ Envia payload para o backend → n8n
+  /* ============================================================
+     🔹 Envia payload para o backend → n8n
+  ============================================================ */
   const handleGenerate = async () => {
-    if (!user || !selectedDisciplina || !selectedTurma) return;
+    if (!user || !user._id || !user.nome) {
+      toast({
+        title: "Aguarde o carregamento",
+        description: "O perfil do professor ainda está sendo carregado. Tente novamente em alguns segundos.",
+        variant: "default",
+      });
+      return;
+    }
+
+    if (!selectedDisciplina || !selectedTurma) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Selecione a disciplina e a turma antes de gerar a atividade.",
+        variant: "default",
+      });
+      return;
+    }
 
     const disciplina = disciplinas.find((d) => d._id === selectedDisciplina);
     const turma = turmas.find((t) => t._id === selectedTurma);
@@ -88,19 +120,25 @@ export function AiActivitiesDashboard() {
       quantidade: quantidade,
     };
 
+    console.info("🚀 Enviando payload seguro para geração de atividade:", payload);
+
     await generateActivities(payload);
     setGenerateModalOpen(false);
     fetchActivities(user._id);
   };
 
-  // ✅ Abertura do modal de revisão
+  /* ============================================================
+     🔹 Abertura do modal de revisão
+  ============================================================ */
   const handleOpenReview = (activity: any) => {
     setSelectedActivity(activity);
     setExplicacaoAtualizada(activity.atividades?.[0]?.explicacao ?? "");
     setModalOpen(true);
   };
 
-  // ✅ Envio de feedback e validação
+  /* ============================================================
+     🔹 Envio de feedback e validação
+  ============================================================ */
   const handleValidate = async () => {
     if (!user || !selectedActivity) return;
 
@@ -121,6 +159,9 @@ export function AiActivitiesDashboard() {
     fetchActivities(user._id);
   };
 
+  /* ============================================================
+     🔹 Renderização
+  ============================================================ */
   return (
     <div className="p-6 space-y-6">
       {/* Cabeçalho */}
@@ -129,7 +170,10 @@ export function AiActivitiesDashboard() {
 
         <div className="flex flex-col md:flex-row gap-2 items-center">
           {/* Select de disciplina */}
-          <Select value={selectedDisciplina} onValueChange={setSelectedDisciplina}>
+          <Select
+            value={selectedDisciplina}
+            onValueChange={setSelectedDisciplina}
+          >
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Selecione disciplina" />
             </SelectTrigger>
@@ -167,10 +211,7 @@ export function AiActivitiesDashboard() {
       </div>
 
       {/* Filtros adicionais */}
-      <ActivityFilters
-        professorId={user?._id || ""}
-        onFilterChange={() => {}}
-      />
+      <ActivityFilters professorId={user?._id || ""} onFilterChange={() => {}} />
 
       {/* Gráfico analítico */}
       <AiActivityProgressChart activities={activities} />
@@ -231,10 +272,16 @@ export function AiActivitiesDashboard() {
           </div>
 
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setGenerateModalOpen(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => setGenerateModalOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleGenerate}>
+            <Button
+              onClick={handleGenerate}
+              disabled={loading || !user?._id}
+            >
               {loading ? (
                 <>
                   <Loader2 className="animate-spin mr-2 h-4 w-4" /> Gerando...
