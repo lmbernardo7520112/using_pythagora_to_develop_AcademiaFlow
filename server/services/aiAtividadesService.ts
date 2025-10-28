@@ -16,7 +16,7 @@ export const enviarParaN8n = async (dados: any) => {
     console.log("🚀 Enviando dados ao n8n...");
     const resposta = await axios.post(webhookUrl, dados, {
       headers: { "Content-Type": "application/json" },
-      timeout: 60000,
+      timeout: 320000,
     });
 
     if (!resposta.data) throw new Error("Resposta vazia do n8n.");
