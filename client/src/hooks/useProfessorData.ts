@@ -1,28 +1,37 @@
 // client/src/hooks/useProfessorData.ts
-import { useState, useCallback } from "react";
+
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Hook para buscar disciplinas e turmas associadas ao professor autenticado.
- * Compatível com o backend atual (rota: /api/professor/disciplinas)
+ * ✅ Reativo com AuthContext e fallback via localStorage.
  */
 export const useProfessorData = () => {
+  const { user, loading: authLoading } = useAuth();
   const [disciplinas, setDisciplinas] = useState<any[]>([]);
   const [turmas, setTurmas] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const hasFetched = useRef(false);
+
+  const styles = {
+    info: "color:#00bcd4;font-weight:bold",
+    success: "color:#4caf50;font-weight:bold",
+    warn: "color:#ff9800;font-weight:bold",
+    error: "color:#f44336;font-weight:bold",
+    dim: "color:gray",
+  };
 
   /**
    * 🔹 Busca disciplinas e turmas do professor autenticado
-   * Ajustado para backend que usa req.user (sem :id na rota)
    */
   const fetchDisciplinasETurmas = useCallback(async () => {
     try {
-      console.log("[useProfessorData] Fetching professor disciplines...");
+      console.log("%c[useProfessorData]%c Fetching professor disciplines...", styles.info, styles.dim);
       setLoading(true);
 
-      // ✅ Ajuste principal — rota sem :id
       const res = await axios.get(`/api/professor/disciplinas`);
-
       if (res.data?.success && Array.isArray(res.data.data)) {
         const disciplinas = res.data.data;
 
@@ -38,16 +47,32 @@ export const useProfessorData = () => {
 
         setDisciplinas(disciplinas);
         setTurmas(Array.from(turmasUnicas.values()));
-        console.log(`[useProfessorData] Disciplinas carregadas: ${disciplinas.length}`);
+
+        console.log("%c[useProfessorData]%c Disciplinas carregadas:", styles.success, styles.dim, disciplinas.length);
       } else {
-        console.warn("[useProfessorData] Nenhuma disciplina encontrada para este professor.");
+        console.warn("%c[useProfessorData]%c Nenhuma disciplina encontrada.", styles.warn, styles.dim);
       }
-    } catch (error) {
-      console.error("❌ Erro ao buscar disciplinas/turmas:", error);
+    } catch (error: any) {
+      console.error("%c❌ Erro ao buscar disciplinas/turmas:%c", styles.error, styles.dim, error?.message || error);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  /**
+   * 🔁 Sincronização reativa com AuthContext e fallback localStorage
+   */
+  useEffect(() => {
+    if (authLoading) return;
+
+    const storedUser = localStorage.getItem("userData");
+    const activeUser = user?._id ? user : storedUser ? JSON.parse(storedUser) : null;
+
+    if (activeUser?._id && !hasFetched.current) {
+      hasFetched.current = true;
+      fetchDisciplinasETurmas();
+    }
+  }, [authLoading, user?._id, fetchDisciplinasETurmas]);
 
   return { disciplinas, turmas, loading, fetchDisciplinasETurmas };
 };
