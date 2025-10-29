@@ -1,5 +1,5 @@
 // server/services/relatorioService.ts
-// server/services/relatorioService.ts
+
 import Turma from "../models/Turma.js";
 import Aluno from "../models/Aluno.js";
 import { getGradesByTurmaAndDisciplina } from "./gradeService.js";

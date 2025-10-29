@@ -140,3 +140,18 @@ export interface TaxaAprovacaoTurma {
 export interface TaxasAprovacao {
   turmas: Record<string, TaxaAprovacaoTurma>;
 }
+
+// --- Tipos para atividades geradas por IA ---
+export interface AiActivity {
+  _id: string;
+  professorId: { _id: string; nome: string; email?: string };
+  disciplinaId: { _id: string; nome: string };
+  turmaId: { _id: string; nome: string };
+  metadata: { tema: string; objetivos_aprendizagem?: string };
+  tipo_atividade: string;
+  nivel_dificuldade: string;
+  quantidade: number;
+  geradoEm: string;
+  validado?: boolean;
+  feedbackCoordenacao?: string;
+}

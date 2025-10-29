@@ -9,6 +9,9 @@ import gradesRoutes from "./gradesRoutes.js";
 import secretariaRoutes from "./secretariaRoutes.js";
 import relatorioRoutes from "./relatorioRoutes.js";
 import authRoutes from "./authRoutes.js";
+import coordRoutes from "./coordRoutes.ts";
+
+
 
 // ✅ Adicione o módulo de IA
 import aiAtividadesRoutes from "./aiAtividadesRoutes.js";
@@ -61,6 +64,9 @@ router.use("/api", authRoutes);
 
 // ✅ NOVO módulo de IA — rotas /api/ai/*
 router.use(aiAtividadesRoutes);
+// ✅ NOVO módulo da Coordenação — rotas /api/coord/*
+router.use("/api/coord", coordRoutes);
+
 
 // ==========================================================
 // ⚠️ Fallback genérico
