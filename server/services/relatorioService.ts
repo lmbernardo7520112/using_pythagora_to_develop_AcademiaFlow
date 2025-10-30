@@ -136,6 +136,53 @@ const relatorioService = {
   },
 
   /**
+ * ============================================================
+ * 🔹 getResumoPorTurma()
+ * Gera resumo compacto de desempenho por turma,
+ * retornando estrutura usada no dashboard da coordenação.
+ * ============================================================
+ */
+async getResumoPorTurma() {
+  const turmas = await Turma.find({ ativo: true }).lean();
+  const resumo: any[] = [];
+
+  for (const turma of turmas) {
+    if (!turma.disciplinas || turma.disciplinas.length === 0) continue;
+
+    const disciplinaId = turma.disciplinas[0].toString();
+    const grades = await getGradesByTurmaAndDisciplina(turma._id.toString(), disciplinaId);
+
+    const total = grades.length;
+    const aprovados = grades.filter((g: any) => g.situacao === "Aprovado").length;
+    const reprovados = grades.filter((g: any) => g.situacao === "Reprovado").length;
+    const recuperacao = grades.filter((g: any) => g.situacao === "Recuperação").length;
+    const mediaTurma =
+      total > 0
+        ? Number(
+            (grades.reduce((acc: number, g: any) => acc + (g.media || 0), 0) / total).toFixed(2)
+          )
+        : 0;
+    const taxaAprovacao = total > 0 ? Number(((aprovados / total) * 100).toFixed(1)) : 0;
+
+    resumo.push({
+      turmaId: turma._id,
+      turmaNome: turma.nome,
+      analytics: {
+        total,
+        mediaTurma,
+        aprovados,
+        reprovados,
+        recuperacao,
+        taxaAprovacao,
+      },
+    });
+  }
+
+  return resumo;
+},
+
+
+  /**
    * Agregador principal para o dashboard de relatórios (consumido pelo frontend)
    * Retorna:
    * { totalTurmas, totalAlunos, mediaGeral, taxaAprovacao, desempenhoPorTurma: [{turma, media}], referencia }

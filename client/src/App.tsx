@@ -1,5 +1,7 @@
 // client/src/App.tsx
 
+// client/src/App.tsx
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "./components/ui/toaster";
@@ -21,7 +23,10 @@ import { SecretariaDisciplinas } from "./pages/SecretariaDisciplinas";
 
 // ✅ Fluxo do Professor — IA Atividades
 import { AiActivitiesDashboard } from "./pages/AiActivitiesDashboard";
-import AIGeneratedActivities from "./pages/AIGeneratedActivities"; // 🔹 Nova página de visualização detalhada
+import AIGeneratedActivities from "./pages/AIGeneratedActivities"; // 🔹 Visualização detalhada de atividades
+
+// ✅ Fluxo da Coordenação Pedagógica
+import CoordinationDashboard from "./pages/CoordinationDashboard";
 
 // ✅ Redirecionamento automático por role
 import { RoleRedirect } from "./components/RoleRedirect";
@@ -71,17 +76,11 @@ function App() {
                 element={<GradeManagement />}
               />
 
-              {/* ✅ Painel principal de Atividades de IA */}
-              <Route
-                path="atividades"
-                element={<AiActivitiesDashboard />}
-              />
+              {/* ✅ Painel de Atividades IA */}
+              <Route path="atividades" element={<AiActivitiesDashboard />} />
 
-              {/* ✅ Nova rota detalhada: visualização individual de uma atividade */}
-              <Route
-                path="atividades/:id"
-                element={<AIGeneratedActivities />}
-              />
+              {/* ✅ Detalhe de Atividade IA */}
+              <Route path="atividades/:id" element={<AIGeneratedActivities />} />
             </Route>
 
             {/* =====================================================
@@ -104,21 +103,33 @@ function App() {
               {/* Disciplinas */}
               <Route path="disciplinas" element={<SecretariaDisciplinas />} />
 
-              {/* Alunos de uma turma */}
-              <Route
-                path="turmas/:turmaId/alunos"
-                element={<SecretariaAlunos />}
-              />
+              {/* Alunos */}
+              <Route path="turmas/:turmaId/alunos" element={<SecretariaAlunos />} />
 
               {/* Relatórios acadêmicos */}
               <Route path="relatorios" element={<SecretariaRelatorios />} />
             </Route>
 
             {/* =====================================================
+               🔹 ROTAS DA COORDENAÇÃO PEDAGÓGICA
+               ===================================================== */}
+            <Route
+              path="/coordenacao/*"
+              element={
+                <ProtectedRoute roles={["coordenacao", "admin", "administrador"]}>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              {/* Painel principal da coordenação */}
+              <Route index element={<CoordinationDashboard />} />
+            </Route>
+
+            {/* =====================================================
                🔹 OUTRAS ROTAS GERAIS
                ===================================================== */}
 
-            {/* Página de acesso não autorizado */}
+            {/* Página de acesso negado */}
             <Route path="/unauthorized" element={<Unauthorized />} />
 
             {/* Página genérica (404) */}

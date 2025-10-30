@@ -12,6 +12,8 @@ export function RoleRedirect() {
       return <Navigate to="/professor" replace />;
     case "secretaria":
       return <Navigate to="/secretaria" replace />;
+    case "coordenacao":
+      return <Navigate to="/coordenacao" replace />;
     default:
       return <Navigate to="/unauthorized" replace />;
   }
