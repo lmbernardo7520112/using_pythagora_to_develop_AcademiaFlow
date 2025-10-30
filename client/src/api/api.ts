@@ -1,10 +1,13 @@
 //client/src/api/api.ts
 
+// client/src/api/api.ts
+
 import axios, {
   AxiosInstance,
   AxiosRequestConfig,
   AxiosError,
-  InternalAxiosRequestConfig
+  InternalAxiosRequestConfig,
+  AxiosResponse,
 } from "axios";
 import JSONbig from "json-bigint";
 
@@ -41,7 +44,8 @@ let accessToken: string | null = null;
 // ==============================================
 // 🔹 FUNÇÃO AUXILIAR
 // ==============================================
-const isRefreshTokenEndpoint = (url: string): boolean => url.includes("/auth/refresh");
+const isRefreshTokenEndpoint = (url: string): boolean =>
+  url.includes("/auth/refresh");
 
 // ==============================================
 // 🔹 INTERCEPTORES DE REQUEST E RESPONSE
@@ -61,9 +65,11 @@ const setupInterceptors = (apiInstance: AxiosInstance) => {
 
   // ----- RESPONSE -----
   apiInstance.interceptors.response.use(
-    (response) => response,
+    (response: AxiosResponse) => response,
     async (error: AxiosError): Promise<unknown> => {
-      const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+      const originalRequest = error.config as InternalAxiosRequestConfig & {
+        _retry?: boolean;
+      };
 
       if (
         error.response?.status &&
@@ -77,9 +83,13 @@ const setupInterceptors = (apiInstance: AxiosInstance) => {
           const refreshToken = localStorage.getItem("refreshToken");
           if (!refreshToken) throw new Error("No refresh token available");
 
-          const response = await localApi.post(`/auth/refresh`, { refreshToken });
-          const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
-            response.data.data;
+          const response = await localApi.post(`/auth/refresh`, {
+            refreshToken,
+          });
+          const {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+          } = response.data.data;
 
           localStorage.setItem("accessToken", newAccessToken);
           localStorage.setItem("refreshToken", newRefreshToken);
@@ -106,16 +116,17 @@ const setupInterceptors = (apiInstance: AxiosInstance) => {
 setupInterceptors(localApi);
 
 // ==============================================
-// 🔹 API FINAL EXPORTADA
+// 🔹 API FINAL EXPORTADA (com tipagem completa)
 // ==============================================
-const api = {
-  request: (config: AxiosRequestConfig) => localApi(config),
-  get: (url: string, config?: AxiosRequestConfig) => localApi.get(url, config),
-  post: (url: string, data?: unknown, config?: AxiosRequestConfig) =>
-    localApi.post(url, data, config),
-  put: (url: string, data?: unknown, config?: AxiosRequestConfig) =>
-    localApi.put(url, data, config),
-  delete: (url: string, config?: AxiosRequestConfig) => localApi.delete(url, config),
-};
+const api: AxiosInstance = {
+  ...localApi,
+  // ✅ Garantimos suporte completo aos métodos Axios padrão
+  get: localApi.get.bind(localApi),
+  post: localApi.post.bind(localApi),
+  put: localApi.put.bind(localApi),
+  patch: localApi.patch.bind(localApi),
+  delete: localApi.delete.bind(localApi),
+  request: localApi.request.bind(localApi),
+} as AxiosInstance;
 
 export default api;
