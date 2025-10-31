@@ -3,7 +3,7 @@
     /* ===== Saída e entrada ===== */
     "rootDir": "./",
     "outDir": "./dist",
-    "noEmit": true,                        // ✅ Permite usar allowImportingTsExtensions
+    "noEmit": true,                        
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -27,6 +27,9 @@
 
     /* ===== Ambiente Node ===== */
     "types": ["node"],
+
+    /* ===== Tipos personalizados ===== */
+    "typeRoots": ["./types", "./node_modules/@types"],
 
     /* ===== Build ===== */
     "noEmitOnError": true

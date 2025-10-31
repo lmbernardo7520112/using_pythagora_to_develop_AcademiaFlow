@@ -1,8 +1,9 @@
 //client/src/context/AiActivitiesContext.tsx
 
+
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { useToast } from "@/hooks/useToast";
-import { gerarAtividades, listarAtividades, revisarAtividade, excluirAtividade } from "../api/aiActivities";
+import { gerarAtividades, listarAtividades, revisarAtividade, excluirAtividade } from "@/api/aiActivities";
 
 interface AiActivitiesContextType {
   activities: any[];
@@ -52,7 +53,7 @@ export function AiActivitiesProvider({ children }: { children: ReactNode }) {
       await revisarAtividade(id);
       setActivities(prev => prev.map(a => (a._id === id ? { ...a, revisado: true } : a)));
       toast({ title: "Atividade marcada como revisada" });
-    } catch (error) {
+    } catch {
       toast({ title: "Erro ao revisar atividade", variant: "destructive" });
     }
   }, []);
@@ -62,7 +63,7 @@ export function AiActivitiesProvider({ children }: { children: ReactNode }) {
       await excluirAtividade(id);
       setActivities(prev => prev.filter(a => a._id !== id));
       toast({ title: "Atividade excluída com sucesso" });
-    } catch (error) {
+    } catch {
       toast({ title: "Erro ao excluir atividade", variant: "destructive" });
     }
   }, []);
@@ -78,6 +79,7 @@ export function AiActivitiesProvider({ children }: { children: ReactNode }) {
 
 export const useAiActivitiesContext = () => {
   const context = useContext(AiActivitiesContext);
-  if (!context) throw new Error("useAiActivitiesContext deve ser usado dentro de AiActivitiesProvider");
+  if (!context)
+    throw new Error("useAiActivitiesContext deve ser usado dentro de AiActivitiesProvider");
   return context;
 };

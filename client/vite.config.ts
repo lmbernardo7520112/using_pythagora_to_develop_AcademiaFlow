@@ -1,5 +1,6 @@
 //client/vite.config.ts
 
+
 import path from "path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -12,7 +13,7 @@ export default defineConfig({
     },
   },
   server: {
-    host: "0.0.0.0", // 🔹 permite acesso via rede local (útil em testes)
+    host: "0.0.0.0",
     port: 5173,
     proxy: {
       "/api": {
@@ -27,6 +28,7 @@ export default defineConfig({
         secure: false,
       },
     },
+    cors: true,
     allowedHosts: ["localhost", "127.0.0.1", ".pythagora.ai"],
     watch: {
       ignored: ["**/node_modules/**", "**/dist/**", "**/public/**", "**/log/**"],

@@ -2,18 +2,21 @@
 
 /**
  * 🔹 Extensão global da interface Express.Request
- * Este arquivo adiciona a propriedade "user" ao objeto Request do Express,
- * garantindo que o TypeScript reconheça corretamente o tipo IUser em qualquer rota ou middleware.
+ * Este arquivo adiciona as propriedades "user" e "token" ao objeto Request do Express,
+ * garantindo que o TypeScript reconheça corretamente o tipo IUser e o token JWT
+ * em qualquer rota ou middleware (ex: coordRoutes.ts, auth.ts, etc).
  *
  * ✅ Soluciona erros do tipo:
- *    "Object is of type 'unknown'" em req.user!._id ou req.user!.role
+ *    - "Property 'user' does not exist on type 'Request'"
+ *    - "Property 'token' does not exist on type 'Request'"
  *
  * ⚙️ Importante:
  *  - O caminho de importação de IUser deve apontar exatamente para o modelo do usuário.
- *  - Este arquivo deve estar incluído no build do TypeScript (veja abaixo em "Configuração do tsconfig.json").
+ *  - Este arquivo deve estar incluído no build do TypeScript (veja o tsconfig.json).
  */
 
-import { IUser } from '../models/User';
+import { IUser } from "../models/User";
+import { JwtPayload } from "jsonwebtoken";
 
 declare global {
   namespace Express {
@@ -23,7 +26,14 @@ declare global {
        * - Presente apenas em rotas protegidas.
        * - Tipo definido a partir do modelo Mongoose IUser.
        */
-      user?: IUser | null;
+      user?: IUser | JwtPayload | null;
+
+      /**
+       * Token JWT extraído do cabeçalho Authorization (Bearer)
+       * - Presente apenas quando o header Authorization é enviado.
+       * - Útil para logs, depuração e middleware de auditoria.
+       */
+      token?: string;
     }
   }
 }

@@ -1,4 +1,5 @@
 // server/services/coordService.ts
+
 import { AtividadeGerada } from "../models/AtividadeGerada.js";
 import { ValidacaoPedagogica } from "../models/ValidacaoPedagogica.js";
 import relatorioService from "./relatorioService.js";

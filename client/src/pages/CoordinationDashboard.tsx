@@ -1,12 +1,12 @@
 // client/src/pages/CoordinationDashboard.tsx
 
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AnalyticsCard } from "@/components/grades/AnalyticsCard";
 import { ClassAnalytics } from "@/components/grades/ClassAnalytics";
 import { AiActivityModal } from "@/components/AiActivityModal";
-import { getCoordDashboard, getCoordActivities } from "@/api/coord";
+import { getCoordDashboard, getCoordActivities, validateActivity } from "@/api/coord"; // se for usar refresh pós-validação via modal, importar aqui ou deixar no modal
 import { AiActivity } from "@/types/academic";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,28 +18,31 @@ export default function CoordinationDashboard() {
   const [selectedActivity, setSelectedActivity] = useState<AiActivity | null>(null);
   const [openModal, setOpenModal] = useState(false);
 
-  useEffect(() => {
-    async function loadDashboard() {
-      setLoading(true);
-      try {
-        const [dashRes, actRes] = await Promise.all([
-          getCoordDashboard(),
-          getCoordActivities(),
-        ]);
-
-        // ✅ Ajuste seguro: backend retorna { success: true, data: {...} }
-        setStats(dashRes.data?.data || {});
-        setActivities(actRes.data?.data || []);
-      } catch (err) {
-        console.error("❌ Erro ao carregar dashboard da coordenação:", err);
-        setStats({});
-        setActivities([]);
-      } finally {
-        setLoading(false);
-      }
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      // wrappers agora retornam o payload útil "nu"
+      const [dashRes, actRes] = await Promise.all([
+        getCoordDashboard(),
+        getCoordActivities(),
+      ]);
+      setStats(dashRes || {});
+      setActivities(Array.isArray(actRes) ? actRes : []);
+    } catch (err) {
+      console.error("❌ Erro ao carregar dashboard da coordenação:", err);
+      setStats({});
+      setActivities([]);
+    } finally {
+      setLoading(false);
     }
-    loadDashboard();
   }, []);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  const professoresAtivosCount =
+    Array.isArray(stats?.professoresMaisAtivos) ? stats.professoresMaisAtivos.length : 0;
 
   if (loading) return <p className="p-6">Carregando painel...</p>;
 
@@ -48,7 +51,7 @@ export default function CoordinationDashboard() {
       <h1 className="text-2xl font-bold">Painel da Coordenação Pedagógica</h1>
 
       {/* Cards Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <AnalyticsCard
           title="Atividades Geradas"
           value={stats?.totalAtividades ?? 0}
@@ -58,7 +61,7 @@ export default function CoordinationDashboard() {
         />
 
         <AnalyticsCard
-          title="Atividades Validadas"
+          title="Validadas"
           value={stats?.atividadesValidadas ?? 0}
           subtitle="Com feedback da coordenação"
           icon={Eye}
@@ -66,18 +69,26 @@ export default function CoordinationDashboard() {
         />
 
         <AnalyticsCard
-          title="Pendentes de Revisão"
+          title="Pendentes"
           value={stats?.pendentes ?? 0}
           subtitle="Aguardando validação"
           icon={Eye}
           colorClass="text-yellow-600"
+        />
+
+        <AnalyticsCard
+          title="Professores Ativos"
+          value={professoresAtivosCount}
+          subtitle="Com atividades recentes"
+          icon={Eye}
+          colorClass="text-purple-600"
         />
       </div>
 
       {/* Seção de Desempenho por Turma */}
       {Array.isArray(stats?.turmasAnalytics) && stats.turmasAnalytics.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold mt-8 mb-3">Desempenho por Turma</h2>
+          <h2 className="text-lg font-semibold mt-8 mb-3">Distribuição Geral de Atividades</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {stats.turmasAnalytics.map((t: any) => (
               <Card key={t.turmaId || t.turmaNome}>
@@ -95,9 +106,7 @@ export default function CoordinationDashboard() {
 
       {/* Seção de Atividades Pendentes */}
       <section>
-        <h2 className="text-lg font-semibold mt-10 mb-3">
-          Atividades Pendentes de Validação
-        </h2>
+        <h2 className="text-lg font-semibold mt-10 mb-3">Atividades Pendentes de Validação</h2>
 
         {activities.length === 0 ? (
           <p>Nenhuma atividade pendente no momento.</p>
@@ -143,6 +152,8 @@ export default function CoordinationDashboard() {
           onClose={() => {
             setOpenModal(false);
             setSelectedActivity(null);
+            // 🔄 após fechar o modal, recarrega para refletir validação
+            loadDashboard();
           }}
           mode="review"
           atividadeSelecionada={selectedActivity}

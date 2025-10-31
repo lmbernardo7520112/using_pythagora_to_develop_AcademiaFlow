@@ -1,132 +1,74 @@
 //client/src/api/api.ts
 
-// client/src/api/api.ts
 
-import axios, {
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosError,
-  InternalAxiosRequestConfig,
-  AxiosResponse,
-} from "axios";
-import JSONbig from "json-bigint";
+import axios from "axios";
 
-// ==============================================
-// 🔹 CONFIGURAÇÃO DINÂMICA DE ENDPOINT
-// ==============================================
-// Em desenvolvimento: usa proxy do Vite ("/api" → porta 3000)
-// Em produção: usa variável de ambiente VITE_API_URL (ex: https://api.seusistema.com/api)
-const baseURL =
-  import.meta.env.MODE === "development"
-    ? "/api"
-    : import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "/api";
-
-// ==============================================
-// 🔹 CONFIGURAÇÃO DO AXIOS
-// ==============================================
-const localApi: AxiosInstance = axios.create({
-  baseURL,
-  headers: { "Content-Type": "application/json" },
-  validateStatus: (status) => status >= 200 && status < 300,
-  transformResponse: [
-    (data) => {
-      try {
-        return JSONbig.parse(data);
-      } catch {
-        return data;
-      }
-    },
-  ],
+// ============================================================
+// 🔹 Instância principal do Axios
+// ============================================================
+const api = axios.create({
+  baseURL: "/api",
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-let accessToken: string | null = null;
-
-// ==============================================
-// 🔹 FUNÇÃO AUXILIAR
-// ==============================================
-const isRefreshTokenEndpoint = (url: string): boolean =>
-  url.includes("/auth/refresh");
-
-// ==============================================
-// 🔹 INTERCEPTORES DE REQUEST E RESPONSE
-// ==============================================
-const setupInterceptors = (apiInstance: AxiosInstance) => {
-  // ----- REQUEST -----
-  apiInstance.interceptors.request.use(
-    (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
-      if (!accessToken) accessToken = localStorage.getItem("accessToken");
-      if (accessToken && config.headers) {
-        config.headers.Authorization = `Bearer ${accessToken}`;
-      }
-      return config;
-    },
-    (error: AxiosError) => Promise.reject(error)
-  );
-
-  // ----- RESPONSE -----
-  apiInstance.interceptors.response.use(
-    (response: AxiosResponse) => response,
-    async (error: AxiosError): Promise<unknown> => {
-      const originalRequest = error.config as InternalAxiosRequestConfig & {
-        _retry?: boolean;
-      };
-
-      if (
-        error.response?.status &&
-        [401, 403].includes(error.response.status) &&
-        !originalRequest._retry &&
-        originalRequest.url &&
-        !isRefreshTokenEndpoint(originalRequest.url)
-      ) {
-        originalRequest._retry = true;
-        try {
-          const refreshToken = localStorage.getItem("refreshToken");
-          if (!refreshToken) throw new Error("No refresh token available");
-
-          const response = await localApi.post(`/auth/refresh`, {
-            refreshToken,
-          });
-          const {
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken,
-          } = response.data.data;
-
-          localStorage.setItem("accessToken", newAccessToken);
-          localStorage.setItem("refreshToken", newRefreshToken);
-          accessToken = newAccessToken;
-
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          }
-
-          return localApi(originalRequest);
-        } catch (err) {
-          localStorage.clear();
-          accessToken = null;
-          window.location.href = "/login";
-          return Promise.reject(err);
-        }
-      }
-      return Promise.reject(error);
+// ============================================================
+// 🧠 Interceptador de requisições
+// ------------------------------------------------------------
+// Adiciona automaticamente o token JWT salvo no localStorage.
+// ============================================================
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-  );
-};
+    // Debug opcional:
+    // console.debug("[Axios] Requisição →", config.method?.toUpperCase(), config.url);
+    return config;
+  },
+  (error) => {
+    console.error("[Axios] Erro na requisição:", error);
+    return Promise.reject(error);
+  }
+);
 
-// Inicializa interceptores
-setupInterceptors(localApi);
+// ============================================================
+// 🧩 Interceptador de respostas
+// ------------------------------------------------------------
+// Lida com expiração de token ou erros 401.
+// ============================================================
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
 
-// ==============================================
-// 🔹 API FINAL EXPORTADA (com tipagem completa)
-// ==============================================
-const api: AxiosInstance = {
-  ...localApi,
-  // ✅ Garantimos suporte completo aos métodos Axios padrão
-  get: localApi.get.bind(localApi),
-  post: localApi.post.bind(localApi),
-  put: localApi.put.bind(localApi),
-  patch: localApi.patch.bind(localApi),
-  delete: localApi.delete.bind(localApi),
-  request: localApi.request.bind(localApi),
-} as AxiosInstance;
+    // 🔁 Se token expirou, tenta refresh automático
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const refreshToken = localStorage.getItem("refreshToken");
+        if (!refreshToken) throw new Error("Refresh token não encontrado");
+
+        const refreshResponse = await axios.post("/api/auth/refresh", { refreshToken });
+        const { accessToken: newToken } = refreshResponse.data;
+
+        localStorage.setItem("accessToken", newToken);
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        console.warn("[Axios] Falha ao renovar token:", refreshError);
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.href = "/login";
+      }
+    }
+
+    console.error("[Axios] Erro na resposta:", error);
+    return Promise.reject(error);
+  }
+);
 
 export default api;

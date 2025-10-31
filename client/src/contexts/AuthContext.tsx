@@ -1,5 +1,6 @@
 //client/src/contexts/AuthContext.tsx
 
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { login as apiLogin, register as apiRegister } from "../api/auth";
 import { User } from "../../../shared/types/user";
@@ -7,8 +8,8 @@ import { User } from "../../../shared/types/user";
 type AuthContextType = {
   isAuthenticated: boolean;
   currentUser: User | null;
-  user: User | null; // Alias compatível globalmente
-  loading: boolean; // Agora o Dashboard pode saber se o perfil ainda está carregando
+  user: User | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -25,14 +26,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
 
   /* ============================================================
-     🧠 Reidratação segura de sessão
+     🧠 Reidratação segura de sessão (persistência JWT)
   ============================================================ */
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    const userData = localStorage.getItem("userData");
+    try {
+      const token = localStorage.getItem("accessToken");
+      const userData = localStorage.getItem("userData");
 
-    if (token && userData) {
-      try {
+      if (token && userData) {
         const parsed = JSON.parse(userData) as User;
         setCurrentUser(parsed);
         setIsAuthenticated(true);
@@ -42,16 +43,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           "color:gray",
           parsed
         );
-      } catch (err) {
-        console.warn("[AuthContext] userData inválido, limpando...");
+      } else {
+        console.info("[AuthContext] Nenhum dado salvo, usuário não autenticado.");
         resetAuth();
       }
-    } else {
-      console.info("[AuthContext] Nenhum dado salvo, usuário não autenticado.");
+    } catch (err) {
+      console.warn("[AuthContext] Erro ao reidratar sessão, limpando dados...");
       resetAuth();
+    } finally {
+      setTimeout(() => setLoading(false), 400);
     }
-
-    setTimeout(() => setLoading(false), 400);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthData(accessToken, refreshToken, userData as User);
       console.log("%c[AuthContext]%c Login concluído com sucesso.", "color:#4caf50;font-weight:bold", "color:gray");
     } catch (error: unknown) {
-      handleAuthError(error, "Login failed");
+      handleAuthError(error, "Falha no login");
     } finally {
       setLoading(false);
     }
@@ -76,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthData(accessToken, refreshToken, userData as User);
       console.log("%c[AuthContext]%c Registro concluído com sucesso.", "color:#4caf50;font-weight:bold", "color:gray");
     } catch (error: unknown) {
-      handleAuthError(error, "Registration failed");
+      handleAuthError(error, "Falha no registro");
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     resetAuth();
-    window.location.reload();
+    window.location.href = "/login";
   };
 
   const resetAuth = () => {
@@ -96,7 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setAuthData = (accessToken: string, refreshToken: string, userData: User) => {
-    if (!accessToken && !refreshToken) throw new Error("Neither refreshToken nor accessToken was returned.");
+    if (!accessToken && !refreshToken)
+      throw new Error("Neither refreshToken nor accessToken was returned.");
     localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("userData", JSON.stringify(userData));
@@ -110,7 +112,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error instanceof Error) errorMessage = error.message;
     else if (typeof error === "object" && error && "message" in error)
       errorMessage = (error as { message: string }).message;
-    console.error("%c[AuthContext]%c Erro de autenticação:", "color:#f44336;font-weight:bold", "color:gray", errorMessage);
+    console.error(
+      "%c[AuthContext]%c Erro de autenticação:",
+      "color:#f44336;font-weight:bold",
+      "color:gray",
+      errorMessage
+    );
     throw new Error(errorMessage);
   };
 
@@ -131,9 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/* Hook seguro */
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  if (!context) throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   return context;
 }

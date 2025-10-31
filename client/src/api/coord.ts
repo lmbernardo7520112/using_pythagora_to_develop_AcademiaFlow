@@ -1,6 +1,5 @@
 // client/src/api/coord.ts
 
-// client/src/api/coord.ts
 import api from "./api";
 
 /**
@@ -9,20 +8,22 @@ import api from "./api";
  * ==========================================================
  */
 
-/** 🔹 Dashboard principal */
+/** 🔹 Estatísticas do painel da coordenação */
 export const getCoordDashboard = async () => {
-  const response = await api.get("/coord/dashboard");
-  return response.data;
+  const { data } = await api.get("/coord/dashboard");
+  // backend envia { success, data: {...} } → devolvemos só o {...}
+  return data?.data ?? data ?? {};
 };
 
-/** 🔹 Lista de atividades pendentes */
+/** 🔹 Lista de atividades (pendentes por padrão) */
 export const getCoordActivities = async () => {
-  const response = await api.get("/coord/atividades");
-  return response.data;
+  const { data } = await api.get("/coord/atividades");
+  // backend envia { success, data: [...] } → devolvemos só o array
+  return data?.data ?? [];
 };
 
-/** 🔹 Valida (ou rejeita) uma atividade */
-export const validateActivity = async (id: string, data: any) => {
-  const response = await api.patch(`/coord/atividades/${id}/validar`, data);
-  return response.data;
+/** 🔹 Validar (ou rejeitar) uma atividade */
+export const validateActivity = async (id: string, payload: any) => {
+  const { data } = await api.patch(`/coord/atividades/${id}/validar`, payload);
+  return data;
 };

@@ -1,5 +1,6 @@
 // server/routes/coordRoutes.ts
 
+
 import { Router, Request, Response } from "express";
 import { requireUser } from "./middlewares/auth.js";
 import { ROLES } from "shared";
@@ -10,12 +11,31 @@ import relatorioService from "../services/relatorioService.js";
 
 const router = Router();
 
-/**
- * ============================================================
- *  🔹 GET /api/coord/dashboard
- *  Painel principal da coordenação pedagógica
- * ============================================================
- */
+/* ============================================================
+   🔒 Middleware de autenticação seguro (verificação JWT)
+   ------------------------------------------------------------
+   Garante que o token Authorization: Bearer <token> seja lido
+   corretamente e o usuário autenticado esteja disponível em req.user.
+============================================================ */
+router.use(async (req: Request, _res: Response, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      req.token = token; // opcional: útil para logs
+      // o requireUser fará a validação e decodificação real
+    }
+    next();
+  } catch (err) {
+    console.error("⚠️ Erro ao interpretar header Authorization:", err);
+    next();
+  }
+});
+
+/* ============================================================
+   🔹 GET /api/coord/dashboard
+   Painel principal da coordenação pedagógica
+============================================================ */
 router.get(
   "/dashboard",
   requireUser([ROLES.COORDENACAO, ROLES.ADMIN]),
@@ -27,8 +47,32 @@ router.get(
       const atividadesValidadas = await AtividadeGerada.countDocuments({ validado: true });
       const pendentes = await AtividadeGerada.countDocuments({ validado: { $ne: true } });
 
-      // Dados de desempenho agregados por turma
+      // Dados agregados por turma
       const turmasAnalytics = await relatorioService.getResumoPorTurma();
+
+      // Professores mais ativos (opcional para evolução UI)
+      const professoresMaisAtivos = await AtividadeGerada.aggregate([
+        { $group: { _id: "$professorId", totalAtividades: { $sum: 1 } } },
+        { $sort: { totalAtividades: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "professor",
+          },
+        },
+        { $unwind: "$professor" },
+        {
+          $project: {
+            _id: 0,
+            nome: "$professor.nome",
+            email: "$professor.email",
+            totalAtividades: 1,
+          },
+        },
+      ]);
 
       return res.status(200).json({
         success: true,
@@ -37,6 +81,7 @@ router.get(
           atividadesValidadas,
           pendentes,
           turmasAnalytics,
+          professoresMaisAtivos,
         },
       });
     } catch (error: any) {
@@ -48,12 +93,10 @@ router.get(
   }
 );
 
-/**
- * ============================================================
- *  🔹 GET /api/coord/atividades
- *  Lista atividades geradas por professores
- * ============================================================
- */
+/* ============================================================
+   🔹 GET /api/coord/atividades
+   Lista atividades geradas por professores
+============================================================ */
 router.get(
   "/atividades",
   requireUser([ROLES.COORDENACAO, ROLES.ADMIN]),
@@ -61,7 +104,6 @@ router.get(
     try {
       console.log("[Coordenação] Buscando atividades geradas por professores...");
 
-      // 🔹 Apenas atividades ainda não validadas
       const atividades = await AtividadeGerada.find({ validado: { $ne: true } })
         .populate("professorId", "nome email")
         .populate("disciplinaId", "nome")
@@ -79,12 +121,10 @@ router.get(
   }
 );
 
-/**
- * ============================================================
- *  🔹 PATCH /api/coord/atividades/:id/validar
- *  Validação e feedback da coordenação pedagógica
- * ============================================================
- */
+/* ============================================================
+   🔹 PATCH /api/coord/atividades/:id/validar
+   Validação e feedback da coordenação pedagógica
+============================================================ */
 router.patch(
   "/atividades/:id/validar",
   requireUser([ROLES.COORDENACAO, ROLES.ADMIN]),
@@ -114,10 +154,8 @@ router.patch(
 
       console.log(`[Coordenação] Validando atividade ${id} com payload:`, payload);
 
-      // 🔹 Chama serviço de feedback IA
       const result = await validarAtividade(payload);
 
-      // 🔹 Atualiza documento principal
       await AtividadeGerada.findByIdAndUpdate(id, {
         feedbackCoordenacao: feedback,
         validado,
@@ -125,7 +163,6 @@ router.patch(
         validadoPor: req.user._id,
       });
 
-      // 🔹 Cria registro no histórico pedagógico
       await ValidacaoPedagogica.create({
         atividadeId: id,
         coordenadorId: req.user._id,
@@ -147,12 +184,10 @@ router.patch(
   }
 );
 
-/**
- * ============================================================
- *  🔹 GET /api/coord/relatorios/validacoes
- *  Histórico de feedbacks pedagógicos
- * ============================================================
- */
+/* ============================================================
+   🔹 GET /api/coord/relatorios/validacoes
+   Histórico de feedbacks pedagógicos
+============================================================ */
 router.get(
   "/relatorios/validacoes",
   requireUser([ROLES.COORDENACAO, ROLES.ADMIN]),

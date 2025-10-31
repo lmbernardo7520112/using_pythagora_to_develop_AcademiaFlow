@@ -1,39 +1,32 @@
 // client/src/types.academic.ts
 
 
-// client/src/types/academic.ts
 // --- Tipos para o Frontend (inclui campos calculados e nomes de campo de input) ---
-// ✅ Mantém o nome FrontendStudent, mas agora também exporta alias Student para compatibilidade
+
 export interface FrontendStudent {
-  _id: string; // ID do aluno (MongoDB ObjectId)
-  name: string; // Nome do aluno - corresponde a item.nome no backend
-  number?: number; // Número do aluno na lista
+  _id: string;
+  name: string;
+  number?: number;
   matricula: string;
-  // Campos de notas
   bim1?: number | null;
   bim2?: number | null;
   bim3?: number | null;
   bim4?: number | null;
-  // Campos calculados
   nf?: number | null;
   mg?: number | null;
   mf?: number | null;
-  // Situação geral
   status?: 'Aprovado' | 'Recuperação' | 'Reprovado' | 'Pendente' | null;
-  // Campos de prova final
   pf?: number | null;
   sf?: number | null;
   finalStatus?: 'Aprovado' | 'Reprovado' | 'Aguardando PF' | null | undefined;
-  // Status adicionais alinhados ao Python
   ativo?: boolean;
   transferido?: boolean;
   desistente?: boolean;
 }
 
-// ✅ Alias para compatibilidade com imports antigos
 export type Student = FrontendStudent;
 
-// ✅ Tipo representando cada item retornado pela API do backend
+// ✅ Tipo alinhado ao backend (cada registro de nota)
 export interface BackendGradeInfo {
   _id: string;
   nome: string;
@@ -53,7 +46,7 @@ export interface BackendGradeInfo {
   turmaId?: string;
 }
 
-// Estatísticas calculadas para a turma — usadas no painel analítico
+// ✅ Estatísticas calculadas para o painel analítico
 export interface ClassAnalytics {
   classAverage: number;
   quarterAverages: {
@@ -73,7 +66,7 @@ export interface ClassAnalytics {
   failed: number;
   recovery: number;
   highPerformers: number;
-  lowPerformers: number; // Alunos que não atingiram média > 8.0
+  lowPerformers: number;
   approvalRate: number;
   approvalRatesByQuarter: {
     bim1: number;
@@ -81,6 +74,15 @@ export interface ClassAnalytics {
     bim3: number;
     bim4: number;
   };
+
+  // 🔹 Campos opcionais para compatibilidade retroativa
+  mediaTurma?: number;
+  taxaAprovacao?: number;
+  aprovados?: number;
+  reprovados?: number;
+  recuperacao?: number;
+  alunosAcima8?: number;
+  mediana?: number;
 }
 
 // --- Tipos para Disciplinas e Turmas ---
@@ -116,21 +118,21 @@ export interface GradeUpdatePayload {
   nota: number | null;
 }
 
-// --- Tipos adicionais para dashboards da secretaria (alinhados ao Python) ---
+// --- Tipos adicionais para dashboards da secretaria ---
 export interface DashboardGeral {
   totalTurmas: number;
   totalAlunos: number;
   ativos: number;
   transferidos: number;
   desistentes: number;
-  abandonos: number; // Calculado como transferidos + desistentes
+  abandonos: number;
 }
 
 export interface TaxaAprovacaoTurma {
   aprovados: number;
   reprovados: number;
   total: number;
-  taxa: number; // Percentual, e.g., 85.71
+  taxa: number;
   taxaBim1?: number;
   taxaBim2?: number;
   taxaBim3?: number;

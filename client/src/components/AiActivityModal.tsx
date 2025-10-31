@@ -1,6 +1,5 @@
 //client/src/components/AiActivityModal.tsx
 
-// client/src/components/AiActivityModal.tsx
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
