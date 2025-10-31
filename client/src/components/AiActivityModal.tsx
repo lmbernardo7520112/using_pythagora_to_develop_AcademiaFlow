@@ -12,18 +12,24 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { useAiActivities } from "@/hooks/useAiActivities";
 import { useProfessorData } from "@/hooks/useProfessorData";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/useToast";
-import axios from "axios";
+import { validateActivity } from "@/api/coord";
 
 interface AiActivityModalProps {
   open: boolean;
   onClose: () => void;
-  mode?: "create" | "review"; // novo modo
-  atividadeSelecionada?: any; // usada quando coordenação abre para revisar
+  mode?: "create" | "review";
+  atividadeSelecionada?: any;
 }
 
 export const AiActivityModal: React.FC<AiActivityModalProps> = ({
@@ -52,7 +58,6 @@ export const AiActivityModal: React.FC<AiActivityModalProps> = ({
 
   useEffect(() => {
     fetchDisciplinasETurmas();
-
     if (mode === "review" && atividadeSelecionada) {
       setFormData({
         disciplinaId: atividadeSelecionada.disciplinaId?._id || "",
@@ -66,17 +71,15 @@ export const AiActivityModal: React.FC<AiActivityModalProps> = ({
     }
   }, [fetchDisciplinasETurmas, mode, atividadeSelecionada]);
 
-  const handleChange = (key: string, value: any) => {
+  const handleChange = (key: string, value: any) =>
     setFormData((prev) => ({ ...prev, [key]: value }));
-  };
 
-  // Fluxo de professor (gerar atividade)
+  // ✅ Fluxo de professor
   const handleSubmit = async () => {
     if (!formData.disciplinaId || !formData.turmaId || !formData.tema) {
       toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
       return;
     }
-
     const payload = {
       professor: { id: currentUser?._id, nome: currentUser?.nome },
       disciplina: { id: formData.disciplinaId },
@@ -89,26 +92,19 @@ export const AiActivityModal: React.FC<AiActivityModalProps> = ({
       nivel_dificuldade: formData.dificuldade,
       quantidade: formData.quantidade,
     };
-
     await generateActivities(payload);
     onClose();
   };
 
-  // Fluxo de coordenação (validação)
+  // ✅ Fluxo da coordenação (validação)
   const handleValidation = async (validado: boolean) => {
     if (!atividadeSelecionada?._id) return;
-
     try {
       setSubmitting(true);
-      await axios.patch(`/api/coord/atividades/${atividadeSelecionada._id}/validar`, {
-        feedback,
-        validado,
-      });
-
+      await validateActivity(atividadeSelecionada._id, { feedback, validado });
       toast({
         title: validado ? "Atividade validada com sucesso!" : "Atividade marcada como pendente.",
       });
-
       onClose();
     } catch (err) {
       console.error(err);
@@ -128,14 +124,10 @@ export const AiActivityModal: React.FC<AiActivityModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Campos compartilhados */}
           <div>
             <Label>Disciplina</Label>
             {mode === "create" ? (
-              <Select
-                value={formData.disciplinaId}
-                onValueChange={(value) => handleChange("disciplinaId", value)}
-              >
+              <Select value={formData.disciplinaId} onValueChange={(v) => handleChange("disciplinaId", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a disciplina" />
                 </SelectTrigger>
@@ -155,10 +147,7 @@ export const AiActivityModal: React.FC<AiActivityModalProps> = ({
           <div>
             <Label>Turma</Label>
             {mode === "create" ? (
-              <Select
-                value={formData.turmaId}
-                onValueChange={(value) => handleChange("turmaId", value)}
-              >
+              <Select value={formData.turmaId} onValueChange={(v) => handleChange("turmaId", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a turma" />
                 </SelectTrigger>
@@ -184,66 +173,6 @@ export const AiActivityModal: React.FC<AiActivityModalProps> = ({
             />
           </div>
 
-          {mode === "create" && (
-            <>
-              <div>
-                <Label>Objetivo Pedagógico (opcional)</Label>
-                <Input
-                  value={formData.objetivo}
-                  onChange={(e) => handleChange("objetivo", e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Tipo</Label>
-                  <Select
-                    value={formData.tipo}
-                    onValueChange={(value) => handleChange("tipo", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="múltipla escolha">Múltipla escolha</SelectItem>
-                      <SelectItem value="dissertativa">Dissertativa</SelectItem>
-                      <SelectItem value="verdadeiro/falso">Verdadeiro ou falso</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Dificuldade</Label>
-                  <Select
-                    value={formData.dificuldade}
-                    onValueChange={(value) => handleChange("dificuldade", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fácil">Fácil</SelectItem>
-                      <SelectItem value="médio">Médio</SelectItem>
-                      <SelectItem value="difícil">Difícil</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label>Quantidade</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={formData.quantidade}
-                  onChange={(e) => handleChange("quantidade", Number(e.target.value))}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Modo coordenação */}
           {mode === "review" && (
             <div className="space-y-2">
               <Label>Feedback Pedagógico</Label>
@@ -271,18 +200,10 @@ export const AiActivityModal: React.FC<AiActivityModalProps> = ({
               <Button variant="outline" onClick={onClose}>
                 Fechar
               </Button>
-              <Button
-                variant="secondary"
-                onClick={() => handleValidation(false)}
-                disabled={submitting}
-              >
+              <Button variant="secondary" onClick={() => handleValidation(false)} disabled={submitting}>
                 Rejeitar
               </Button>
-              <Button
-                variant="default"
-                onClick={() => handleValidation(true)}
-                disabled={submitting}
-              >
+              <Button variant="default" onClick={() => handleValidation(true)} disabled={submitting}>
                 Validar
               </Button>
             </>

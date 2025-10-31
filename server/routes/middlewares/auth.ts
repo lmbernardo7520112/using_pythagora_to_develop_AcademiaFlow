@@ -1,6 +1,5 @@
 //server/routes/middlewares/auth.ts
 
-// server/routes/middlewares/auth.ts
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { ALL_ROLES, ROLES } from "shared";

@@ -1,5 +1,6 @@
 // client/src/pages/CoordinationDashboard.tsx
 
+
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AnalyticsCard } from "@/components/grades/AnalyticsCard";
@@ -11,7 +12,7 @@ import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function CoordinationDashboard() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<any>({});
   const [activities, setActivities] = useState<AiActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState<AiActivity | null>(null);
@@ -25,10 +26,14 @@ export default function CoordinationDashboard() {
           getCoordDashboard(),
           getCoordActivities(),
         ]);
-        setStats(dashRes.data);
-        setActivities(actRes.data);
+
+        // ✅ Ajuste seguro: backend retorna { success: true, data: {...} }
+        setStats(dashRes.data?.data || {});
+        setActivities(actRes.data?.data || []);
       } catch (err) {
-        console.error("Erro ao carregar dashboard da coordenação:", err);
+        console.error("❌ Erro ao carregar dashboard da coordenação:", err);
+        setStats({});
+        setActivities([]);
       } finally {
         setLoading(false);
       }
@@ -70,17 +75,17 @@ export default function CoordinationDashboard() {
       </div>
 
       {/* Seção de Desempenho por Turma */}
-      {stats?.turmasAnalytics && (
+      {Array.isArray(stats?.turmasAnalytics) && stats.turmasAnalytics.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold mt-8 mb-3">Desempenho por Turma</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {stats.turmasAnalytics.map((t: any) => (
-              <Card key={t.turmaId}>
+              <Card key={t.turmaId || t.turmaNome}>
                 <CardHeader>
-                  <CardTitle>{t.turmaNome}</CardTitle>
+                  <CardTitle>{t.turmaNome ?? "Turma sem nome"}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ClassAnalytics analytics={t.analytics} />
+                  <ClassAnalytics analytics={t.analytics || {}} />
                 </CardContent>
               </Card>
             ))}
@@ -90,9 +95,11 @@ export default function CoordinationDashboard() {
 
       {/* Seção de Atividades Pendentes */}
       <section>
-        <h2 className="text-lg font-semibold mt-10 mb-3">Atividades Pendentes de Validação</h2>
+        <h2 className="text-lg font-semibold mt-10 mb-3">
+          Atividades Pendentes de Validação
+        </h2>
 
-        {!activities.length ? (
+        {activities.length === 0 ? (
           <p>Nenhuma atividade pendente no momento.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

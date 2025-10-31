@@ -17,9 +17,9 @@ const router = Router();
  * ============================================================
  */
 router.get(
-  "/coord/dashboard",
+  "/dashboard",
   requireUser([ROLES.COORDENACAO, ROLES.ADMIN]),
-  async (req: Request, res: Response) => {
+  async (_req: Request, res: Response) => {
     try {
       console.log("[Coordenação] Requisição para dashboard recebida.");
 
@@ -43,7 +43,7 @@ router.get(
       console.error("❌ Erro em /api/coord/dashboard:", error);
       return res
         .status(500)
-        .json({ message: "Erro ao gerar dashboard da coordenação." });
+        .json({ success: false, message: "Erro ao gerar dashboard da coordenação." });
     }
   }
 );
@@ -55,24 +55,26 @@ router.get(
  * ============================================================
  */
 router.get(
-  "/coord/atividades",
+  "/atividades",
   requireUser([ROLES.COORDENACAO, ROLES.ADMIN]),
-  async (req: Request, res: Response) => {
+  async (_req: Request, res: Response) => {
     try {
       console.log("[Coordenação] Buscando atividades geradas por professores...");
 
-      const atividades = await AtividadeGerada.find({})
+      // 🔹 Apenas atividades ainda não validadas
+      const atividades = await AtividadeGerada.find({ validado: { $ne: true } })
         .populate("professorId", "nome email")
         .populate("disciplinaId", "nome")
         .populate("turmaId", "nome")
-        .sort({ createdAt: -1 });
+        .sort({ criadoEm: -1 })
+        .lean();
 
       return res.json({ success: true, data: atividades });
     } catch (error: any) {
       console.error("❌ Erro em /api/coord/atividades:", error);
       return res
         .status(500)
-        .json({ message: "Erro ao buscar atividades geradas." });
+        .json({ success: false, message: "Erro ao buscar atividades geradas." });
     }
   }
 );
@@ -84,13 +86,12 @@ router.get(
  * ============================================================
  */
 router.patch(
-  "/coord/atividades/:id/validar",
+  "/atividades/:id/validar",
   requireUser([ROLES.COORDENACAO, ROLES.ADMIN]),
   async (req: Request, res: Response) => {
     try {
       if (!req.user) {
-        console.warn("⚠️ Rota /api/coord/atividades/:id/validar: req.user is missing.");
-        return res.status(401).json({ message: "Unauthorized: no user in request." });
+        return res.status(401).json({ success: false, message: "Usuário não autenticado." });
       }
 
       const { id } = req.params;
@@ -113,9 +114,10 @@ router.patch(
 
       console.log(`[Coordenação] Validando atividade ${id} com payload:`, payload);
 
+      // 🔹 Chama serviço de feedback IA
       const result = await validarAtividade(payload);
 
-      // Atualiza campos locais na coleção principal
+      // 🔹 Atualiza documento principal
       await AtividadeGerada.findByIdAndUpdate(id, {
         feedbackCoordenacao: feedback,
         validado,
@@ -123,12 +125,24 @@ router.patch(
         validadoPor: req.user._id,
       });
 
-      return res.json({ success: true, message: "Atividade validada com sucesso.", data: result });
+      // 🔹 Cria registro no histórico pedagógico
+      await ValidacaoPedagogica.create({
+        atividadeId: id,
+        coordenadorId: req.user._id,
+        feedback,
+        dataValidacao: new Date(),
+      });
+
+      return res.json({
+        success: true,
+        message: "Atividade validada com sucesso.",
+        data: result,
+      });
     } catch (error: any) {
       console.error("❌ Erro em /api/coord/atividades/:id/validar:", error);
       return res
         .status(500)
-        .json({ message: "Erro ao validar atividade." });
+        .json({ success: false, message: "Erro ao validar atividade." });
     }
   }
 );
@@ -140,7 +154,7 @@ router.patch(
  * ============================================================
  */
 router.get(
-  "/coord/relatorios/validacoes",
+  "/relatorios/validacoes",
   requireUser([ROLES.COORDENACAO, ROLES.ADMIN]),
   async (_req: Request, res: Response) => {
     try {
@@ -156,7 +170,7 @@ router.get(
       console.error("❌ Erro em /api/coord/relatorios/validacoes:", error);
       return res
         .status(500)
-        .json({ message: "Erro ao carregar relatórios de validação." });
+        .json({ success: false, message: "Erro ao carregar relatórios de validação." });
     }
   }
 );

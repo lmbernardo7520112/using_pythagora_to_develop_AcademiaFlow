@@ -9,7 +9,7 @@ import gradesRoutes from "./gradesRoutes.js";
 import secretariaRoutes from "./secretariaRoutes.js";
 import relatorioRoutes from "./relatorioRoutes.js";
 import authRoutes from "./authRoutes.js";
-import coordRoutes from "./coordRoutes.ts";
+import coordRoutes from "./coordRoutes.js";
 
 
 
