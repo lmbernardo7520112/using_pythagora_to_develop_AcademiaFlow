@@ -1,12 +1,13 @@
 // client/src/pages/CoordinationDashboard.tsx
 
+// client/src/pages/CoordinationDashboard.tsx
 
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AnalyticsCard } from "@/components/grades/AnalyticsCard";
 import { ClassAnalytics } from "@/components/grades/ClassAnalytics";
 import { AiActivityModal } from "@/components/AiActivityModal";
-import { getCoordDashboard, getCoordActivities, validateActivity } from "@/api/coord"; // se for usar refresh pós-validação via modal, importar aqui ou deixar no modal
+import { getCoordDashboard, getCoordActivities } from "@/api/coord";
 import { AiActivity } from "@/types/academic";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,13 +22,23 @@ export default function CoordinationDashboard() {
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      // wrappers agora retornam o payload útil "nu"
       const [dashRes, actRes] = await Promise.all([
         getCoordDashboard(),
         getCoordActivities(),
       ]);
-      setStats(dashRes || {});
-      setActivities(Array.isArray(actRes) ? actRes : []);
+
+      // ✅ Usa dados consistentes do backend unificado
+      const dashData = dashRes || {};
+      const previewActivities = Array.isArray(dashData?.atividadesPendentesPreview)
+        ? dashData.atividadesPendentesPreview
+        : [];
+
+      const mergedActivities = Array.isArray(actRes) && actRes.length > 0
+        ? actRes
+        : previewActivities;
+
+      setStats(dashData);
+      setActivities(mergedActivities);
     } catch (err) {
       console.error("❌ Erro ao carregar dashboard da coordenação:", err);
       setStats({});
@@ -50,7 +61,7 @@ export default function CoordinationDashboard() {
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Painel da Coordenação Pedagógica</h1>
 
-      {/* Cards Resumo */}
+      {/* 🔹 Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <AnalyticsCard
           title="Atividades Geradas"
@@ -85,7 +96,7 @@ export default function CoordinationDashboard() {
         />
       </div>
 
-      {/* Seção de Desempenho por Turma */}
+      {/* 🔹 Seção Analítica por Turma */}
       {Array.isArray(stats?.turmasAnalytics) && stats.turmasAnalytics.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold mt-8 mb-3">Distribuição Geral de Atividades</h2>
@@ -104,7 +115,7 @@ export default function CoordinationDashboard() {
         </section>
       )}
 
-      {/* Seção de Atividades Pendentes */}
+      {/* 🔹 Atividades Pendentes de Validação */}
       <section>
         <h2 className="text-lg font-semibold mt-10 mb-3">Atividades Pendentes de Validação</h2>
 
@@ -145,15 +156,14 @@ export default function CoordinationDashboard() {
         )}
       </section>
 
-      {/* Modal de Revisão */}
+      {/* 🔹 Modal de Revisão */}
       {selectedActivity && (
         <AiActivityModal
           open={openModal}
           onClose={() => {
             setOpenModal(false);
             setSelectedActivity(null);
-            // 🔄 após fechar o modal, recarrega para refletir validação
-            loadDashboard();
+            loadDashboard(); // 🔁 Atualiza após validação
           }}
           mode="review"
           atividadeSelecionada={selectedActivity}
