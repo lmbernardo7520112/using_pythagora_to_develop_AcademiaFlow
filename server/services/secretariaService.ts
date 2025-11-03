@@ -284,20 +284,23 @@ const secretariaService = {
   // ==========================================================
   async getTaxasAprovacao() {
     try {
-      const turmas = await Turma.find().populate({
-        path: "alunos",
-        select: "status nome ativo transferido abandono",
-      });
+      const turmas = await Turma.find()
+        .populate({
+          path: "alunos",
+          select: "status nome ativo transferido abandono",
+        })
+        .lean();
 
       const resultado: Record<string, any> = {};
 
       for (const turma of turmas) {
+        // ✅ Cast explícito para eliminar erro de tipagem
         const alunos = (turma.alunos as any[]) ?? [];
         const total = alunos.length || 1;
 
-        const aprovados = alunos.filter((a) => a.status === "aprovado").length;
-        const reprovados = alunos.filter((a) => a.status === "reprovado").length;
-        const evadidos = alunos.filter((a) => a.status === "evadido" || a.abandono).length;
+        const aprovados = alunos.filter((a: any) => a.status === "aprovado").length;
+        const reprovados = alunos.filter((a: any) => a.status === "reprovado").length;
+        const evadidos = alunos.filter((a: any) => a.status === "evadido" || a.abandono).length;
 
         resultado[turma.nome ?? "Sem nome"] = {
           aprovacao: ((aprovados / total) * 100).toFixed(1),
