@@ -1,6 +1,5 @@
 // client/src/pages/CoordinationDashboard.tsx
 
-// client/src/pages/CoordinationDashboard.tsx
 
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";

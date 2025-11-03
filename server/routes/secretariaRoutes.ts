@@ -1,6 +1,5 @@
 // server/routes/secretariaRoutes.ts
 
-
 import express, { Request, Response } from "express";
 import { requireUser } from "./middlewares/auth.js";
 import secretariaService from "../services/secretariaService.js";
@@ -122,6 +121,19 @@ router.put("/secretaria/disciplinas/:id/turma", requireSecretaria, async (req: R
   } catch (err) {
     console.error("❌ secretariaRoutes.assignTurmaToDisciplina:", err);
     return res.status(500).json({ message: "Erro ao vincular turma à disciplina" });
+  }
+});
+
+// ==========================================================
+// 📊 RELATÓRIOS E TAXAS DE APROVAÇÃO
+// ==========================================================
+router.get("/secretaria/relatorios/taxas", requireSecretaria, async (_req: Request, res: Response) => {
+  try {
+    const data = await secretariaService.getTaxasAprovacao();
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    console.error("❌ secretariaRoutes.getTaxasAprovacao:", err);
+    return res.status(500).json({ success: false, message: "Erro ao obter taxas de aprovação." });
   }
 });
 

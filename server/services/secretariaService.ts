@@ -1,7 +1,5 @@
 // server/services/secretariaService.ts
 
-// server/services/secretariaService.ts
-
 import mongoose from "mongoose";
 import Turma from "../models/Turma.js";
 import Aluno from "../models/Aluno.js";
@@ -45,7 +43,6 @@ const secretariaService = {
   // ==========================================================
   // 🎓 TURMAS
   // ==========================================================
-
   async listTurmas() {
     try {
       const turmas = await Turma.find()
@@ -74,7 +71,7 @@ const secretariaService = {
       const turma = await Turma.findById(id)
         .populate("professor", "name email")
         .populate("disciplinas", "nome codigo")
-        .populate("alunos", "nome matricula email ativo transferido abandono")
+        .populate("alunos", "nome matricula email ativo transferido abandono status")
         .lean();
       return turma ?? null;
     } catch (error) {
@@ -91,11 +88,9 @@ const secretariaService = {
       const turma = await Turma.findById(turmaId);
       if (!turma) throw new Error("Turma não encontrada");
 
-      // Atualiza a lista de alunos da turma
       turma.alunos = alunosIds.map((id) => new mongoose.Types.ObjectId(id));
       await turma.save();
 
-      // Atualiza o campo 'turma' nos alunos
       await Aluno.updateMany(
         { _id: { $in: alunosIds } },
         { $set: { turma: turma._id } }
@@ -104,7 +99,7 @@ const secretariaService = {
       const turmaAtualizada = await Turma.findById(turmaId)
         .populate("professor", "nome email")
         .populate("disciplinas", "nome codigo")
-        .populate("alunos", "nome matricula email ativo transferido abandono")
+        .populate("alunos", "nome matricula email ativo transferido abandono status")
         .lean();
 
       return turmaAtualizada;
@@ -117,11 +112,10 @@ const secretariaService = {
   // ==========================================================
   // 👩‍🎓 ALUNOS
   // ==========================================================
-
   async listAlunosByTurma(turmaId: string) {
     if (!mongoose.Types.ObjectId.isValid(turmaId)) throw new Error("ID inválido");
     return await Aluno.find({ turma: turmaId })
-      .select("nome matricula email ativo transferido abandono turma")
+      .select("nome matricula email ativo transferido abandono turma status")
       .sort({ nome: 1 })
       .lean();
   },
@@ -147,19 +141,19 @@ const secretariaService = {
           ativo: normalized.ativo,
           transferido: normalized.transferido,
           abandono: normalized.abandono,
+          status: data.status ?? current.status,
         },
       }
     );
 
     return await Aluno.findById(id)
-      .select("nome matricula email ativo transferido abandono turma")
+      .select("nome matricula email ativo transferido abandono turma status")
       .lean();
   },
 
   // ==========================================================
   // 📊 DASHBOARD
   // ==========================================================
-
   async getDashboardGeral() {
     try {
       const totalTurmas = await Turma.countDocuments({ ativo: true });
@@ -168,15 +162,12 @@ const secretariaService = {
       const transferidos = await Aluno.countDocuments({ transferido: true });
       const abandonos = await Aluno.countDocuments({ abandono: true });
 
-      // Compatibilidade retroativa
-      const desistentes = abandonos;
-
       return {
         totalTurmas,
         totalAlunos,
         ativos,
         transferidos,
-        desistentes,
+        desistentes: abandonos,
         abandonos,
       };
     } catch (error) {
@@ -190,12 +181,12 @@ const secretariaService = {
       if (!mongoose.Types.ObjectId.isValid(turmaId)) throw new Error("ID inválido");
 
       const turma = await Turma.findById(turmaId)
-        .populate("alunos", "ativo transferido abandono")
+        .populate("alunos", "ativo transferido abandono status")
         .lean();
 
       if (!turma) throw new Error("Turma não encontrada");
 
-      const alunos = turma.alunos as any[];
+      const alunos = (turma.alunos as any[]) ?? [];
       const total = alunos.length;
       const ativos = alunos.filter((a) => a.ativo).length;
       const transferidos = alunos.filter((a) => a.transferido).length;
@@ -211,7 +202,6 @@ const secretariaService = {
   // ==========================================================
   // 📚 DISCIPLINAS
   // ==========================================================
-
   async listDisciplinas() {
     try {
       const disciplinas = await Disciplina.find()
@@ -246,10 +236,6 @@ const secretariaService = {
       throw new Error("Erro ao listar disciplinas");
     }
   },
-
-  // ==========================================================
-  // 🔗 ATRIBUIÇÃO DE PROFESSORES E TURMAS À DISCIPLINA
-  // ==========================================================
 
   async assignProfessorToDisciplina(disciplinaId: string, professorId: string | null) {
     try {
@@ -290,6 +276,40 @@ const secretariaService = {
     } catch (error) {
       console.error("❌ secretariaService.assignTurmaToDisciplina:", error);
       throw new Error("Erro ao vincular turma à disciplina");
+    }
+  },
+
+  // ==========================================================
+  // 📊 RELATÓRIOS: TAXAS DE APROVAÇÃO
+  // ==========================================================
+  async getTaxasAprovacao() {
+    try {
+      const turmas = await Turma.find().populate({
+        path: "alunos",
+        select: "status nome ativo transferido abandono",
+      });
+
+      const resultado: Record<string, any> = {};
+
+      for (const turma of turmas) {
+        const alunos = (turma.alunos as any[]) ?? [];
+        const total = alunos.length || 1;
+
+        const aprovados = alunos.filter((a) => a.status === "aprovado").length;
+        const reprovados = alunos.filter((a) => a.status === "reprovado").length;
+        const evadidos = alunos.filter((a) => a.status === "evadido" || a.abandono).length;
+
+        resultado[turma.nome ?? "Sem nome"] = {
+          aprovacao: ((aprovados / total) * 100).toFixed(1),
+          reprovacao: ((reprovados / total) * 100).toFixed(1),
+          evasao: ((evadidos / total) * 100).toFixed(1),
+        };
+      }
+
+      return { turmas: resultado };
+    } catch (error) {
+      console.error("❌ secretariaService.getTaxasAprovacao:", error);
+      throw new Error("Erro ao calcular taxas de aprovação.");
     }
   },
 };

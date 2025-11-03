@@ -12,6 +12,7 @@ export interface IAluno extends Document {
   abandono: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  status?: string; // 🔹 adiciona o campo opcional
 }
 
 /**
