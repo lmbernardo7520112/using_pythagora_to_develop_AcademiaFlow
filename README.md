@@ -265,3 +265,117 @@ ___
 **Ano:** 2025
 
 ___
+
+---
+
+## 🕒 Histórico de Desenvolvimento (Commit Log Humano)
+
+### 🧩 Fase 1 — Estrutura Inicial e Autenticação
+**Período:** Março–Abril 2025  
+**Resumo:**
+- Criação da estrutura inicial com **React + TypeScript + Vite**.
+- Configuração do **Axios** com interceptadores JWT (renovação automática de token).
+- Implementação do **AuthContext** e sistema de login baseado em papéis (`professor`, `secretaria`, `coordenacao`, `admin`).
+- Integração com backend Express (`/api/auth`, `/api/coord`, `/api/secretaria`).
+
+**Commits representativos:**
+- `feat(auth): implement JWT token refresh with Axios interceptors`
+- `chore(api): standardize baseURL and error handling`
+
+---
+
+### 🎓 Fase 2 — Jornada do Professor
+**Período:** Abril–Maio 2025  
+**Resumo:**
+- Criação do **ProfessorDashboard** com listagem de disciplinas e turmas.
+- Implementação da lógica condicional para exibir apenas turmas atribuídas ao docente autenticado.
+- Resolução de erros de renderização e regressões de estado (“Você ainda não possui disciplinas atribuídas”).
+- Revisão do fluxo de atividades e notas com `fetchGrades()` e `GradeCell`.
+
+**Commits representativos:**
+- `feat(professor): implement professor dashboard with disciplines and classes`
+- `fix(dashboard): restore discipline list and conditional rendering`
+- `refactor(components): unify GradeCell rendering logic`
+
+---
+
+### 🗂️ Fase 3 — Jornada da Secretaria Acadêmica
+**Período:** Maio–Junho 2025  
+**Resumo:**
+- Implementação das rotas `/api/secretaria/dashboard` e `/api/secretaria/relatorios/taxas`.
+- Construção do **SecretariaDashboard** inicial com `dash` e `taxas` em estados separados.
+- Introdução dos relatórios dinâmicos (`getRelatorios`, `getTaxasAprovacao`) e integração com `Recharts`.
+- Detecção e correção de erros 404 (`relatorios/taxas` inexistente no backend).
+- Padronização do backend com `secretariaService.getTaxasAprovacao()` e integração completa com Mongoose.
+
+**Commits representativos:**
+- `feat(secretaria): add dashboard and relatorios routes`
+- `fix(api): correct missing /relatorios/taxas endpoint`
+- `chore(service): add taxasAprovacao calculator in secretariaService`
+
+---
+
+### 🧠 Fase 4 — Jornada da Coordenação Pedagógica
+**Período:** Junho–Julho 2025  
+**Resumo:**
+- Implementação do **CoordinationDashboard**, primeiro painel com estrutura analítica completa.
+- Introdução do padrão `stats` (`const [stats, setStats] = useState<any>({})`) unificando dados e métricas.
+- Criação dos componentes `AnalyticsCard` e `ClassAnalytics` para visualização modular.
+- Integração do modal `AiActivityModal` para validação de atividades.
+- Ajuste das rotas `getCoordDashboard` e `getCoordActivities`.
+
+**Commits representativos:**
+- `feat(coord): implement unified analytics dashboard with stats pattern`
+- `feat(ui): add ClassAnalytics and AnalyticsCard components`
+- `fix(activities): ensure fallback preview activities from dashData`
+
+---
+
+### ⚙️ Fase 5 — Consolidação e Unificação de Padrões
+**Período:** Julho–Outubro 2025  
+**Resumo:**
+- Refatoração do **SecretariaDashboard** para adotar o mesmo padrão `stats` usado pela coordenação.
+- Implementação do carregamento paralelo via `Promise.all()` (`getDashboardGeral` + `getTaxasAprovacao`).
+- Correções definitivas de tipagem e compatibilidade entre backend e frontend (`status`, `abandono`, `transferido`).
+- Revisão completa de `secretariaService.ts` com população Mongoose e cálculo robusto de taxas por turma.
+- Sincronização de comportamento visual e semântico entre todos os dashboards.
+
+**Commits representativos:**
+- `refactor(secretaria): unify dashboard state using stats pattern`
+- `feat(service): add full Mongoose populate for Aluno and Turma`
+- `fix(api): align getDashboardGeral and getTaxasAprovacao responses`
+- `chore(ui): ensure parity between Secretaria and Coord dashboards`
+
+---
+
+### 🚀 Fase 6 — Estabilização e Integração Completa
+**Período:** Outubro–Novembro 2025  
+**Resumo:**
+- Validação cruzada dos painéis e rotas de API.
+- Revisão de todas as dependências de frontend (`Recharts`, `Lucide`, `Axios`).
+- Teste de regressões e consistência dos dados (`stats.resumo` + `stats.taxas`).
+- Documentação técnica final e padronização de logs de erro (`console.error` contextualizado).
+
+**Commits representativos:**
+- `fix(api): handle undefined data safely with nullish coalescing`
+- `chore(ui): polish Recharts and fallback visual messages`
+- `docs(readme): add human commit log and technical architecture summary`
+
+---
+
+## 🧾 Resumo da Linha do Tempo
+
+| Mês/Ano | Fase | Foco Principal | Marco Técnico |
+|----------|------|----------------|----------------|
+| Mar–Abr/2025 | 1 | Estrutura base + Auth | Axios + JWT Interceptor |
+| Abr–Mai/2025 | 2 | Painel do Professor | Dashboards docentes |
+| Mai–Jun/2025 | 3 | Painel da Secretaria | Gráficos e relatórios |
+| Jun–Jul/2025 | 4 | Painel da Coordenação | Analytics + Modal IA |
+| Jul–Out/2025 | 5 | Unificação `stats` | Consolidação total |
+| Out–Nov/2025 | 6 | Estabilização | Documentação + Refinamento |
+
+---
+
+> 💬 *"Cada commit foi mais que código: foi uma decisão arquitetural que pavimentou um ecossistema educacional digital consistente, analítico e integrado."*  
+> — **Leonardo Maximino Bernardo**, 2025
+
