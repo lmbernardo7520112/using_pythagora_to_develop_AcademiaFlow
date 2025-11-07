@@ -1,5 +1,9 @@
-// server/models/Turma.ts
-
+// ==========================================================
+// 📁 server/models/Turma.ts
+// ----------------------------------------------------------
+// Modelo de Turmas — versão final consolidada e sem duplicações
+// Garantia: compatível, estável e sem warnings Mongoose
+// ==========================================================
 
 import "./Disciplina.ts";
 import mongoose, { Document, Schema, Types, Model } from "mongoose";
@@ -34,7 +38,7 @@ const TurmaSchema = new Schema<ITurma>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Professor responsável é obrigatório"],
-      index: true,
+      // ⚠️ removido index: true (duplicava com schema.index)
     },
     disciplinas: [
       {
@@ -52,7 +56,7 @@ const TurmaSchema = new Schema<ITurma>(
     ativo: {
       type: Boolean,
       default: true,
-      index: true,
+      // ⚠️ removido index: true (duplicava com schema.index)
     },
     criadoEm: {
       type: Date,
@@ -80,23 +84,35 @@ const TurmaSchema = new Schema<ITurma>(
   }
 );
 
-// Índices
+// ==========================================================
+// 📌 Índices consolidados e seguros
+// ==========================================================
 TurmaSchema.index({ nome: 1, ano: 1 }, { unique: true });
 TurmaSchema.index({ ano: -1 });
+TurmaSchema.index({ professor: 1 });
+TurmaSchema.index({ ativo: 1 });
+
+// ==========================================================
+// 🧮 Virtuals e Hooks
+// ==========================================================
 
 // Virtual: número de alunos
 TurmaSchema.virtual("qtdAlunos").get(function (this: ITurma) {
   return this.alunos?.length || 0;
 });
 
-// Hook automático
+// Atualização automática da data
 TurmaSchema.pre("save", function (next) {
   this.atualizadoEm = new Date();
   next();
 });
 
+// ==========================================================
+// 🧩 Modelo
+// ==========================================================
 const Turma: Model<ITurma> =
   mongoose.models.Turma || mongoose.model<ITurma>("Turma", TurmaSchema);
 
 export default Turma;
 export { Turma };
+

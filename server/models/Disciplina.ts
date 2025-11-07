@@ -1,4 +1,8 @@
-//server/models/Disciplinas.ts
+// ==========================================================
+// 📁 server/models/Disciplina.ts
+// ----------------------------------------------------------
+// Modelo de Disciplina — versão final sem warnings e 100% compatível
+// ==========================================================
 
 import mongoose, { Schema, Document, Types, Model } from "mongoose";
 
@@ -24,23 +28,24 @@ const DisciplinaSchema = new Schema<IDisciplina>(
     codigo: {
       type: String,
       required: [true, "Código da disciplina é obrigatório"],
-      unique: true,
+      unique: true, // cria automaticamente o índice único
       uppercase: true,
       match: [/^[A-Z0-9_-]+$/, "Código deve conter apenas letras, números e traços"],
+      // ❌ sem index: true (evita duplicação)
     },
     professor: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: false, // ✅ antes era true
+      required: false,
       default: null,
-      index: true,
+      // ❌ sem index: true (índice manual abaixo)
     },
     turma: {
       type: Schema.Types.ObjectId,
       ref: "Turma",
-      required: false, // ✅ antes era true
+      required: false,
       default: null,
-      index: true,
+      // ❌ sem index: true (índice manual abaixo)
     },
     cargaHoraria: {
       type: Number,
@@ -52,7 +57,7 @@ const DisciplinaSchema = new Schema<IDisciplina>(
     ativo: {
       type: Boolean,
       default: true,
-      index: true,
+      // ❌ sem index: true (índice manual abaixo)
     },
     criadoEm: {
       type: Date,
@@ -81,11 +86,19 @@ const DisciplinaSchema = new Schema<IDisciplina>(
   }
 );
 
-// Índices úteis
+// ==========================================================
+// 📌 Índices consolidados e seguros
+// ==========================================================
+// ⚠️ Removido índice duplicado de "codigo"
+// Mongoose já cria o índice único automaticamente via unique:true
 DisciplinaSchema.index({ nome: 1 });
-DisciplinaSchema.index({ codigo: 1 }, { unique: true });
 DisciplinaSchema.index({ ativo: 1 });
+DisciplinaSchema.index({ professor: 1 });
+DisciplinaSchema.index({ turma: 1 });
 
+// ==========================================================
+// 🧩 Modelo
+// ==========================================================
 const Disciplina: Model<IDisciplina> =
   mongoose.models.Disciplina ||
   mongoose.model<IDisciplina>("Disciplina", DisciplinaSchema);
